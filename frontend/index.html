@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ops Lawncare Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .modal { display: none; }
+    .modal.active { display: flex; }
+    .sort-icon { transition: opacity 0.2s; }
+    .sort-active { opacity: 1 !important; color: #22c55e; }
+    th { cursor: pointer; user-select: none; }
+    th:hover .sort-icon { opacity: 0.6; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+  <!-- Navbar -->
+  <nav class="bg-green-700 text-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-leaf text-2xl"></i>
+        <h1 class="text-xl font-bold tracking-wide">Ops Lawncare</h1>
+      </div>
+      <div class="flex items-center gap-4 text-sm">
+        <span id="clock" class="text-green-200"></span>
+        <button onclick="openExpenseModal()" class="bg-white text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-green-50 transition">
+          <i class="fa-solid fa-plus mr-2"></i>Add Expense
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Top KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Today's Forecast -->
+      <div class="bg-white rounded-xl shadow p-5 flex items-start gap-4">
+        <div class="text-3xl" id="today-icon">⏳</div>
+        <div>
+          <p class="text-gray-500 text-sm">Today's Forecast</p>
+          <p class="text-lg font-bold text-gray-800" id="today-condition">Loading...</p>
+          <p class="text-sm text-gray-600" id="today-temp">—</p>
+        </div>
+      </div>
+      <!-- Weekly Revenue -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-gray-500 text-sm mb-1">Weekly Expected Revenue</p>
+        <p class="text-2xl font-bold text-green-600" id="kpi-revenue">—</p>
+        <p class="text-xs text-gray-400 mt-1">Based on scheduled cuts</p>
+      </div>
+      <!-- Net Profit -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-gray-500 text-sm mb-1">Net Profit Margin</p>
+        <p class="text-2xl font-bold text-blue-600" id="kpi-profit">—</p>
+        <p class="text-xs text-gray-400 mt-1">After expenses</p>
+      </div>
+      <!-- Pending Route -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-gray-500 text-sm mb-1">Pending Route</p>
+        <p class="text-2xl font-bold text-orange-500" id="kpi-pending">—</p>
+        <p class="text-xs text-gray-400 mt-1">Yards to cut this week</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left column: Weather + Calendar + Expenses -->
+      <div class="space-y-6">
+
+        <!-- 7-Day Weather Forecast -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-sun text-blue-500"></i> 7-Day Forecast
+          </h2>
+          <div id="weather-grid" class="grid grid-cols-7 gap-2 text-center">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Week Calendar + Weather Overlay -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-calendar-days text-purple-500"></i> This Week
+          </h2>
+          <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Recent Expenses -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-red-500"></i> Recent Expenses
+          </h2>
+          <div id="recent-expenses" class="space-y-3">
+            <p class="text-gray-400 text-sm text-center py-4">No expenses yet.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right column: Client Route Table + Profit Margins -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Client Route Table -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <i class="fa-solid fa-route text-orange-500"></i> Client Route
+            </h2>
+            <span class="text-xs text-gray-400">Sorted by mileage</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3">Client</th>
+                  <th class="px-4 py-3">Address</th>
+                  <th class="px-4 py-3" onclick="sortTable('price')">
+                    Price/Cut <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  </th>
+                  <th class="px-4 py-3" onclick="sortTable('total')">
+                    Total Cuts <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  </th>
+                  <th class="px-4 py-3" onclick="sortTable('mileage')">
+                    Mileage <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="client-table" class="divide-y divide-gray-100">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Profit Margins -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-green-600"></i> Profit Margins by Client
+          </h2>
+          <div id="profit-table" class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3">Client</th>
+                  <th class="px-4 py-3">Revenue</th>
+                  <th class="px-4 py-3">Expense Share</th>
+                  <th class="px-4 py-3">Net</th>
+                  <th class="px-4 py-3">Margin</th>
+                </tr>
+              </thead>
+              <tbody id="profit-body" class="divide-y divide-gray-100">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dashboard Summary (large) -->
+        <div class="bg-white rounded-xl shadow p-5">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-table-columns text-indigo-500"></i> Financial Summary
+          </h2>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+            <div class="bg-green-50 rounded-lg p-4">
+              <p class="text-xs text-green-600 uppercase font-semibold">Total Revenue</p>
+              <p class="text-xl font-bold text-green-700" id="fin-revenue">—</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4">
+              <p class="text-xs text-red-600 uppercase font-semibold">Total Expenses</p>
+              <p class="text-xl font-bold text-red-700" id="fin-expenses">—</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+              <p class="text-xs text-blue-600 uppercase font-semibold">Net Profit</p>
+              <p class="text-xl font-bold text-blue-700" id="fin-net">—</p>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-4">
+              <p class="text-xs text-gray-600 uppercase font-semibold">Profit Margin</p>
+              <p class="text-xl font-bold text-gray-800" id="fin-margin">—</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Expense Modal -->
+  <div id="expense-modal" class="modal fixed inset-0 bg-black/50 items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 relative">
+      <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-receipt text-green-600"></i> Add Expense
+      </h3>
+      <form id="expense-form" onsubmit="submitExpense(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select name="category" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            <option value="">Select category</option>
+            <option>Fuel</option>
+            <option>Equipment</option>
+            <option>Labor</option>
+            <option>Maintenance</option>
+            <option>Insurance</option>
+            <option>Supplies</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+          <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input type="date" name="date" required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <input type="text" name="description" placeholder="Optional note..."
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        </div>
+        <div id="expense-error" class="text-red-500 text-sm hidden"></div>
+        <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2.5 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Submit Expense
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin + '/api';
+
+    // ── Clock ─────────────────────────────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+    setInterval(updateClock, 60000);
+    updateClock();
+
+    // ── Number formatters ──────────────────────────────────────────────────────
+    const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const pct = n => Number(n || 0).toFixed(1) + '%';
+
+    // ── Dashboard Summary ──────────────────────────────────────────────────────
+    async function loadDashboard() {
+      try {
+        const [summary, weatherData, clients] = await Promise.all([
+          fetch(API + '/dashboard/summary').then(r => r.json()),
+          fetch(API + '/weather').then(r => r.json()),
+          fetch(API + '/clients').then(r => r.json()),
+        ]);
+
+        // KPIs
+        document.getElementById('kpi-revenue').textContent = usd(summary.totalRevenue);
+        document.getElementById('kpi-profit').textContent = pct(summary.profitMargin);
+        document.getElementById('kpi-pending').textContent = summary.pendingThisWeek;
+
+        // Financial summary
+        document.getElementById('fin-revenue').textContent = usd(summary.totalRevenue);
+        document.getElementById('fin-expenses').textContent = usd(summary.totalExpenses);
+        document.getElementById('fin-net').textContent = usd(summary.netProfit);
+        document.getElementById('fin-margin').textContent = pct(summary.profitMargin);
+
+        // Recent expenses
+        const container = document.getElementById('recent-expenses');
+        if (summary.recentExpenses && summary.recentExpenses.length > 0) {
+          container.innerHTML = summary.recentExpenses.map(e => `
+            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+              <div>
+                <p class="font-medium text-gray-800 text-sm">${e.category}</p>
+                <p class="text-xs text-gray-400">${e.date} · ${e.description || '—'}</p>
+              </div>
+              <span class="text-red-500 font-semibold text-sm">${usd(e.amount)}</span>
+            </div>
+          `).join('');
+        }
+
+        // Weather grid
+        renderWeatherGrid(weatherData.forecast);
+
+        // Calendar
+        renderCalendar(weatherData.forecast);
+
+        // Clients table
+        renderClientsTable(clients.clients);
+
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+      }
+    }
+
+    // ── Weather Grid ───────────────────────────────────────────────────────────
+    function renderWeatherGrid(forecast) {
+      const grid = document.getElementById('weather-grid');
+      if (!forecast || !forecast.length) return;
+
+      // Today
+      const today = forecast[0];
+      document.getElementById('today-icon').textContent = today.icon;
+      document.getElementById('today-condition').textContent = today.condition;
+      document.getElementById('today-temp').textContent = `${Math.round(today.tempMin)}°–${Math.round(today.tempMax)}°C`;
+
+      // 7-day row
+      grid.innerHTML = forecast.map(d => {
+        const dayName = new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' });
+        return `
+          <div class="flex flex-col items-center gap-1 p-2 rounded-lg ${d.date === forecast[0].date ? 'bg-green-50 ring-1 ring-green-300' : 'hover:bg-gray-50'}">
+            <span class="text-xs font-medium text-gray-500">${dayName}</span>
+            <span class="text-xl">${d.icon}</span>
+            <span class="text-xs font-semibold">${Math.round(d.tempMax)}°</span>
+            <span class="text-xs text-gray-400">${Math.round(d.tempMin)}°</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Calendar ──────────────────────────────────────────────────────────────
+    function renderCalendar(forecast) {
+      const grid = document.getElementById('calendar-grid');
+      if (!forecast) return;
+
+      // Get start of current week (Monday)
+      const today = new Date();
+      const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mon
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - dayOfWeek);
+
+      grid.innerHTML = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayData = forecast.find(f => f.date === dateStr);
+        const isToday = dateStr === today.toISOString().split('T')[0];
+
+        return `
+          <div class="flex flex-col items-center gap-1 p-2 rounded-lg border ${isToday ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}">
+            <span class="text-xs font-semibold ${isToday ? 'text-green-700' : 'text-gray-500'}">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+            <span class="text-sm font-bold text-gray-800">${date.getDate()}</span>
+            ${dayData ? `<span class="text-lg">${dayData.icon}</span><span class="text-xs text-gray-500">${Math.round(dayData.tempMax)}°</span>` : '<span class="text-lg">—</span>'}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Clients Table ───────────────────────────────────────────────────────────
+    let allClients = [];
+    let sortKey = 'mileage';
+    let sortAsc = true;
+
+    async function loadClients() {
+      const res = await fetch(API + '/clients');
+      const data = await res.json();
+      allClients = data.clients || [];
+      renderClientsTable(allClients);
+    }
+
+    function renderClientsTable(clients) {
+      const tbody = document.getElementById('client-table');
+      if (!clients.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No clients found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = clients.map(c => `
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-4 py-3 font-medium text-gray-800">${c.name}</td>
+          <td class="px-4 py-3 text-gray-600 text-xs">${c.address}</td>
+          <td class="px-4 py-3 text-gray-700">${usd(c.pricePerCut)}</td>
+          <td class="px-4 py-3 text-gray-700">${c.totalCuts}</td>
+          <td class="px-4 py-3 text-gray-700">${c.mileageRoundtrip} mi</td>
+        </tr>
+      `).join('');
+    }
+
+    function sortTable(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+
+      const sorted = [...allClients].sort((a, b) => {
+        if (key === 'mileage') return sortAsc ? a.mileageRoundtrip - b.mileageRoundtrip : b.mileageRoundtrip - a.mileageRoundtrip;
+        if (key === 'price') return sortAsc ? a.pricePerCut - b.pricePerCut : b.pricePerCut - a.pricePerCut;
+        if (key === 'total') return sortAsc ? a.totalCuts - b.totalCuts : b.totalCuts - a.totalCuts;
+        return 0;
+      });
+      renderClientsTable(sorted);
+    }
+
+    // ── Profit Margins ─────────────────────────────────────────────────────────
+    async function loadProfitMargins() {
+      const res = await fetch(API + '/dashboard/profit-margins');
+      const data = await res.json();
+      const tbody = document.getElementById('profit-body');
+      const margins = data.margins || [];
+      if (!margins.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No data.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = margins.map(m => {
+        const marginClass = parseFloat(m.margin) >= 50 ? 'text-green-600' : parseFloat(m.margin) >= 25 ? 'text-yellow-600' : 'text-red-600';
+        return `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-medium text-gray-800">${m.name}</td>
+            <td class="px-4 py-3 text-gray-700">${usd(m.revenue)}</td>
+            <td class="px-4 py-3 text-red-500">${usd(m.expenseShare)}</td>
+            <td class="px-4 py-3 text-blue-700 font-semibold">${usd(m.net)}</td>
+            <td class="px-4 py-3 font-bold ${marginClass}">${pct(m.margin)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ── Expense Modal ──────────────────────────────────────────────────────────
+    function openExpenseModal() {
+      document.getElementById('expense-modal').classList.add('active');
+      document.getElementById('expense-error').classList.add('hidden');
+      document.getElementById('expense-form').reset();
+      document.getElementById('expense-form').date.value = new Date().toISOString().split('T')[0];
+    }
+
+    function closeExpenseModal() {
+      document.getElementById('expense-modal').classList.remove('active');
+    }
+
+    async function submitExpense(e) {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const payload = {
+        category: fd.get('category'),
+        amount: parseFloat(fd.get('amount')),
+        date: fd.get('date'),
+        description: fd.get('description'),
+      };
+      const errorEl = document.getElementById('expense-error');
+      try {
+        const res = await fetch(API + '/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to submit');
+        }
+        closeExpenseModal();
+        await loadDashboard(); // Refresh cards
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Close modal on backdrop click ─────────────────────────────────────────
+    document.getElementById('expense-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeExpenseModal();
+    });
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    loadDashboard();
+    loadClients();
+    loadProfitMargins();
+  </script>
+</body>
+</html>
