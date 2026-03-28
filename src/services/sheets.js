@@ -1,7 +1,20 @@
+// ─── Mode Selection ───────────────────────────────────────────────────────────
+// Use mock data when DATA_MODE=mock or GOOGLE_SHEETS_CREDENTIALS is not set.
+// Use live data when DATA_MODE=live and credentials are present.
+
+const DATA_MODE = process.env.DATA_MODE || (process.env.GOOGLE_SHEETS_CREDENTIALS ? 'live' : 'mock');
+
+if (DATA_MODE === 'mock') {
+  console.log('[sheets] Running in MOCK mode — serving Anderson, SC demo data');
+  module.exports = require('./mockData');
+  return;
+}
+
+// ─── Live Google Sheets Mode ─────────────────────────────────────────────────
+
 const { google } = require('googleapis');
 const { v4: uuidv4 } = require('uuid');
 
-// Load credentials from env var
 const credentials = JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS || '{}');
 
 const auth = new google.auth.JWT(

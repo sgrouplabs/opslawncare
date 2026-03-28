@@ -1,10 +1,26 @@
 const https = require('https');
 
-// Default to Berlin; override with query param lat/lon if needed
-const DEFAULT_LAT = 52.52;
-const DEFAULT_LON = 13.405;
+// Default to Anderson, SC; override with query param lat/lon if needed
+const DEFAULT_LAT = 34.5034;
+const DEFAULT_LON = -82.6501;
+
+// ─── Mock Weather Data (Anderson, SC Spring) ─────────────────────────────────
+
+const MOCK_FORECAST = [
+  { date: '2026-03-28', weatherCode: 2,  tempMax: 76, tempMin: 58, precipitation: 0.0, windSpeed: 8,  condition: 'Partly Cloudy', icon: '⛅' },
+  { date: '2026-03-29', weatherCode: 1,  tempMax: 78, tempMin: 60, precipitation: 0.0, windSpeed: 6,  condition: 'Mostly Clear', icon: '🌤️' },
+  { date: '2026-03-30', weatherCode: 3,  tempMax: 72, tempMin: 57, precipitation: 0.2, windSpeed: 10, condition: 'Overcast',      icon: '☁️' },
+  { date: '2026-03-31', weatherCode: 2,  tempMax: 74, tempMin: 56, precipitation: 0.0, windSpeed: 7,  condition: 'Partly Cloudy', icon: '⛅' },
+  { date: '2026-04-01', weatherCode: 0,  tempMax: 82, tempMin: 61, precipitation: 0.0, windSpeed: 5,  condition: 'Clear',        icon: '☀️' },
+  { date: '2026-04-02', weatherCode: 61, tempMax: 68, tempMin: 55, precipitation: 3.1, windSpeed: 12, condition: 'Light Rain',    icon: '🌧️' },
+  { date: '2026-04-03', weatherCode: 2,  tempMax: 73, tempMin: 54, precipitation: 0.0, windSpeed: 8,  condition: 'Partly Cloudy', icon: '⛅' },
+];
 
 function fetch7DayForecast(lat = DEFAULT_LAT, lon = DEFAULT_LON) {
+  const DATA_MODE = process.env.DATA_MODE || 'live';
+  if (DATA_MODE === 'mock') {
+    return Promise.resolve(MOCK_FORECAST);
+  }
   return new Promise((resolve, reject) => {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe%2FBerlin&forecast_days=7`;
 

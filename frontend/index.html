@@ -6,28 +6,139 @@
   <title>Ops Lawncare Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <style>
+    /* ── Custom Properties ──────────────────────────────────────────────── */
+    :root {
+      --neon-green: #39FF14;
+      --neon-green-dim: #22c55e;
+      --card-bg: #1a1d27;
+      --card-border: #2a2d3a;
+      --glow-green: 0 0 8px rgba(57, 255, 20, 0.4);
+      --glow-green-strong: 0 0 16px rgba(57, 255, 20, 0.6);
+    }
+
+    body {
+      background-color: #0f1117;
+      color: #f3f4f6;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1a1d27; }
+    ::-webkit-scrollbar-thumb { background: #39FF14; border-radius: 3px; }
+
+    /* ── Cards ───────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .card:hover {
+      border-color: rgba(57, 255, 20, 0.3);
+      box-shadow: var(--glow-green);
+    }
+
+    /* ── Neon Text ───────────────────────────────────────────────────────── */
+    .text-neon { color: var(--neon-green); }
+    .text-neon-dim { color: var(--neon-green-dim); }
+
+    /* ── Sort Icons ───────────────────────────────────────────────────────── */
+    .sort-icon { transition: opacity 0.2s; }
+    th:hover .sort-icon { opacity: 0.6; }
+    .sort-active { color: var(--neon-green) !important; opacity: 1 !important; }
+
+    /* ── Modal ────────────────────────────────────────────────────────────── */
     .modal { display: none; }
     .modal.active { display: flex; }
-    .sort-icon { transition: opacity 0.2s; }
-    .sort-active { opacity: 1 !important; color: #22c55e; }
-    th { cursor: pointer; user-select: none; }
-    th:hover .sort-icon { opacity: 0.6; }
+
+    /* ── Leaflet Dark Overrides ────────────────────────────────────────────── */
+    #client-map { border-radius: 0.75rem; }
+    .leaflet-popup-content-wrapper {
+      background: #1a1d27 !important;
+      border: 1px solid rgba(57,255,20,0.4) !important;
+      border-radius: 0.5rem !important;
+      box-shadow: 0 0 12px rgba(57,255,20,0.3) !important;
+      color: #f3f4f6 !important;
+    }
+    .leaflet-popup-tip {
+      background: #1a1d27 !important;
+    }
+    .leaflet-popup-content {
+      margin: 12px 16px !important;
+      font-family: 'Segoe UI', system-ui, sans-serif !important;
+    }
+    .leaflet-container { background: #12151e !important; }
+    .leaflet-control-zoom a {
+      background: #1a1d27 !important;
+      color: var(--neon-green) !important;
+      border-color: #2a2d3a !important;
+    }
+    .leaflet-control-zoom a:hover { background: #2a2d3a !important; }
+
+    /* ── Table Hover ──────────────────────────────────────────────────────── */
+    tbody tr:hover { background: rgba(57,255,20,0.05); }
+
+    /* ── Button Glow ──────────────────────────────────────────────────────── */
+    .btn-neon {
+      background: var(--neon-green);
+      color: #000;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-neon:hover {
+      background: #4ade80;
+      box-shadow: var(--glow-green-strong);
+    }
+
+    /* ── Active Nav Left Border ───────────────────────────────────────────── */
+    .nav-active { border-left: 3px solid var(--neon-green); }
+
+    /* ── KPI Card Glow ────────────────────────────────────────────────────── */
+    .kpi-card { border-left: 3px solid transparent; transition: all 0.3s ease; }
+    .kpi-card:hover { border-left-color: var(--neon-green); }
+
+    /* ── Green Badge ──────────────────────────────────────────────────────── */
+    .badge-green {
+      background: rgba(57,255,20,0.15);
+      color: var(--neon-green);
+      border: 1px solid rgba(57,255,20,0.3);
+    }
+
+    /* ── Calendar Today ───────────────────────────────────────────────────── */
+    .calendar-today {
+      border: 1px solid var(--neon-green) !important;
+      background: rgba(57,255,20,0.08) !important;
+    }
+
+    /* ── Expense Row ─────────────────────────────────────────────────────── */
+    .expense-row { border-bottom: 1px solid var(--card-border); }
+    .expense-row:last-child { border-bottom: none; }
+
+    /* ── Section Header Accent ───────────────────────────────────────────── */
+    .section-title { color: #d1d5db; }
+    .section-icon { color: var(--neon-green); }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body>
 
   <!-- Navbar -->
-  <nav class="bg-green-700 text-white shadow-lg">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+  <nav class="bg-[#1a1d27] border-b border-[#2a2d3a] shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <i class="fa-solid fa-leaf text-2xl"></i>
-        <h1 class="text-xl font-bold tracking-wide">Ops Lawncare</h1>
+        <span class="text-2xl select-none" style="filter: drop-shadow(0 0 6px rgba(57,255,20,0.7));">🌿</span>
+        <div>
+          <h1 class="text-lg font-bold text-neon tracking-wide">Ops Lawncare</h1>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest -mt-0.5">Anderson, SC</p>
+        </div>
       </div>
       <div class="flex items-center gap-4 text-sm">
-        <span id="clock" class="text-green-200"></span>
-        <button onclick="openExpenseModal()" class="bg-white text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-green-50 transition">
-          <i class="fa-solid fa-plus mr-2"></i>Add Expense
+        <span id="clock" class="text-gray-400 hidden sm:block"></span>
+        <button onclick="openExpenseModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
+          <i class="fa-solid fa-plus"></i> Add Expense
         </button>
       </div>
     </div>
@@ -37,54 +148,67 @@
 
     <!-- Top KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
       <!-- Today's Forecast -->
-      <div class="bg-white rounded-xl shadow p-5 flex items-start gap-4">
+      <div class="card kpi-card p-5 flex items-start gap-4">
         <div class="text-3xl" id="today-icon">⏳</div>
         <div>
           <p class="text-gray-500 text-sm">Today's Forecast</p>
-          <p class="text-lg font-bold text-gray-800" id="today-condition">Loading...</p>
-          <p class="text-sm text-gray-600" id="today-temp">—</p>
+          <p class="text-lg font-bold text-gray-100" id="today-condition">Loading...</p>
+          <p class="text-sm text-gray-400" id="today-temp">—</p>
         </div>
       </div>
+
       <!-- Weekly Revenue -->
-      <div class="bg-white rounded-xl shadow p-5">
+      <div class="card kpi-card p-5">
         <p class="text-gray-500 text-sm mb-1">Weekly Expected Revenue</p>
-        <p class="text-2xl font-bold text-green-600" id="kpi-revenue">—</p>
-        <p class="text-xs text-gray-400 mt-1">Based on scheduled cuts</p>
+        <p class="text-2xl font-bold text-neon" id="kpi-revenue">—</p>
+        <p class="text-xs text-gray-500 mt-1">Based on scheduled cuts</p>
       </div>
+
       <!-- Net Profit -->
-      <div class="bg-white rounded-xl shadow p-5">
+      <div class="card kpi-card p-5">
         <p class="text-gray-500 text-sm mb-1">Net Profit Margin</p>
-        <p class="text-2xl font-bold text-blue-600" id="kpi-profit">—</p>
-        <p class="text-xs text-gray-400 mt-1">After expenses</p>
+        <p class="text-2xl font-bold text-purple-400" id="kpi-profit">—</p>
+        <p class="text-xs text-gray-500 mt-1">After expenses</p>
       </div>
+
       <!-- Pending Route -->
-      <div class="bg-white rounded-xl shadow p-5">
+      <div class="card kpi-card p-5">
         <p class="text-gray-500 text-sm mb-1">Pending Route</p>
-        <p class="text-2xl font-bold text-orange-500" id="kpi-pending">—</p>
-        <p class="text-xs text-gray-400 mt-1">Yards to cut this week</p>
+        <p class="text-2xl font-bold text-orange-400" id="kpi-pending">—</p>
+        <p class="text-xs text-gray-500 mt-1">Yards to cut this week</p>
       </div>
+
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- Left column: Weather + Calendar + Expenses -->
+      <!-- Left column: Map + Weather + Calendar + Expenses -->
       <div class="space-y-6">
 
+        <!-- Client Map -->
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot section-icon"></i> Client Map
+          </h2>
+          <div id="client-map" class="w-full rounded-xl overflow-hidden" style="height: 280px; border: 1px solid #2a2d3a;"></div>
+        </div>
+
         <!-- 7-Day Weather Forecast -->
-        <div class="bg-white rounded-xl shadow p-5">
-          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-cloud-sun text-blue-500"></i> 7-Day Forecast
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-sun section-icon"></i> 7-Day Forecast
           </h2>
           <div id="weather-grid" class="grid grid-cols-7 gap-2 text-center">
             <!-- Filled by JS -->
           </div>
         </div>
 
-        <!-- Week Calendar + Weather Overlay -->
-        <div class="bg-white rounded-xl shadow p-5">
-          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-calendar-days text-purple-500"></i> This Week
+        <!-- Week Calendar -->
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-calendar-days section-icon"></i> This Week
           </h2>
           <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center">
             <!-- Filled by JS -->
@@ -92,96 +216,96 @@
         </div>
 
         <!-- Recent Expenses -->
-        <div class="bg-white rounded-xl shadow p-5">
-          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-receipt text-red-500"></i> Recent Expenses
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-receipt section-icon"></i> Recent Expenses
           </h2>
-          <div id="recent-expenses" class="space-y-3">
-            <p class="text-gray-400 text-sm text-center py-4">No expenses yet.</p>
+          <div id="recent-expenses" class="space-y-1">
+            <p class="text-gray-500 text-sm text-center py-4">No expenses yet.</p>
           </div>
         </div>
 
       </div>
 
-      <!-- Right column: Client Route Table + Profit Margins -->
+      <!-- Right column: Client Route Table + Profit Margins + Financial Summary -->
       <div class="lg:col-span-2 space-y-6">
 
         <!-- Client Route Table -->
-        <div class="bg-white rounded-xl shadow p-5">
+        <div class="card p-5">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <i class="fa-solid fa-route text-orange-500"></i> Client Route
+            <h2 class="text-lg font-bold section-title flex items-center gap-2">
+              <i class="fa-solid fa-route section-icon"></i> Client Route
             </h2>
-            <span class="text-xs text-gray-400">Sorted by mileage</span>
+            <span class="text-xs text-gray-500 badge-green px-2 py-0.5 rounded-full">Sorted by mileage</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
-              <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+              <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
                 <tr>
-                  <th class="px-4 py-3">Client</th>
-                  <th class="px-4 py-3">Address</th>
-                  <th class="px-4 py-3" onclick="sortTable('price')">
-                    Price/Cut <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  <th class="px-4 py-3 text-gray-400">Client</th>
+                  <th class="px-4 py-3 text-gray-400">Address</th>
+                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('price')">
+                    Price/Cut <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
                   </th>
-                  <th class="px-4 py-3" onclick="sortTable('total')">
-                    Total Cuts <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('total')">
+                    Total Cuts <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
                   </th>
-                  <th class="px-4 py-3" onclick="sortTable('mileage')">
-                    Mileage <i class="fa-solid fa-sort sort-icon text-gray-400 ml-1"></i>
+                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('mileage')">
+                    Mileage <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
                   </th>
                 </tr>
               </thead>
-              <tbody id="client-table" class="divide-y divide-gray-100">
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading...</td></tr>
+              <tbody id="client-table" class="divide-y divide-[#2a2d3a]">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
         <!-- Profit Margins -->
-        <div class="bg-white rounded-xl shadow p-5">
-          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-chart-pie text-green-600"></i> Profit Margins by Client
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie section-icon"></i> Profit Margins by Client
           </h2>
           <div id="profit-table" class="overflow-x-auto">
             <table class="w-full text-sm text-left">
-              <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+              <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
                 <tr>
-                  <th class="px-4 py-3">Client</th>
-                  <th class="px-4 py-3">Revenue</th>
-                  <th class="px-4 py-3">Expense Share</th>
-                  <th class="px-4 py-3">Net</th>
-                  <th class="px-4 py-3">Margin</th>
+                  <th class="px-4 py-3 text-gray-400">Client</th>
+                  <th class="px-4 py-3 text-gray-400">Revenue</th>
+                  <th class="px-4 py-3 text-gray-400">Expense Share</th>
+                  <th class="px-4 py-3 text-gray-400">Net</th>
+                  <th class="px-4 py-3 text-gray-400">Margin</th>
                 </tr>
               </thead>
-              <tbody id="profit-body" class="divide-y divide-gray-100">
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Loading...</td></tr>
+              <tbody id="profit-body" class="divide-y divide-[#2a2d3a]">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Dashboard Summary (large) -->
-        <div class="bg-white rounded-xl shadow p-5">
-          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-table-columns text-indigo-500"></i> Financial Summary
+        <!-- Financial Summary -->
+        <div class="card p-5">
+          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-table-columns section-icon"></i> Financial Summary
           </h2>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-            <div class="bg-green-50 rounded-lg p-4">
-              <p class="text-xs text-green-600 uppercase font-semibold">Total Revenue</p>
-              <p class="text-xl font-bold text-green-700" id="fin-revenue">—</p>
+            <div class="bg-[#0f1f0f] rounded-lg p-4 border border-green-900/50">
+              <p class="text-xs text-green-500 uppercase font-semibold">Total Revenue</p>
+              <p class="text-xl font-bold text-neon" id="fin-revenue">—</p>
             </div>
-            <div class="bg-red-50 rounded-lg p-4">
-              <p class="text-xs text-red-600 uppercase font-semibold">Total Expenses</p>
-              <p class="text-xl font-bold text-red-700" id="fin-expenses">—</p>
+            <div class="bg-[#1f0f0f] rounded-lg p-4 border border-red-900/50">
+              <p class="text-xs text-red-500 uppercase font-semibold">Total Expenses</p>
+              <p class="text-xl font-bold text-red-400" id="fin-expenses">—</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4">
-              <p class="text-xs text-blue-600 uppercase font-semibold">Net Profit</p>
-              <p class="text-xl font-bold text-blue-700" id="fin-net">—</p>
+            <div class="bg-[#0f0f1f] rounded-lg p-4 border border-purple-900/50">
+              <p class="text-xs text-purple-400 uppercase font-semibold">Net Profit</p>
+              <p class="text-xl font-bold text-purple-400" id="fin-net">—</p>
             </div>
-            <div class="bg-gray-100 rounded-lg p-4">
-              <p class="text-xs text-gray-600 uppercase font-semibold">Profit Margin</p>
-              <p class="text-xl font-bold text-gray-800" id="fin-margin">—</p>
+            <div class="bg-[#12151e] rounded-lg p-4 border border-[#2a2d3a]">
+              <p class="text-xs text-gray-400 uppercase font-semibold">Profit Margin</p>
+              <p class="text-xl font-bold text-gray-100" id="fin-margin">—</p>
             </div>
           </div>
         </div>
@@ -191,18 +315,18 @@
   </main>
 
   <!-- Add Expense Modal -->
-  <div id="expense-modal" class="modal fixed inset-0 bg-black/50 items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 relative">
-      <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-lg">
+  <div id="expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
+      <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-receipt text-green-600"></i> Add Expense
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-receipt text-neon"></i> Add Expense
       </h3>
       <form id="expense-form" onsubmit="submitExpense(event)" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <select name="category" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+          <label class="block text-sm font-medium text-gray-400 mb-1">Category</label>
+          <select name="category" required class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
             <option value="">Select category</option>
             <option>Fuel</option>
             <option>Equipment</option>
@@ -214,30 +338,87 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Amount ($)</label>
           <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Date</label>
           <input type="date" name="date" required
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
           <input type="text" name="description" placeholder="Optional note..."
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
         </div>
-        <div id="expense-error" class="text-red-500 text-sm hidden"></div>
-        <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2.5 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2">
+        <div id="expense-error" class="text-red-400 text-sm hidden"></div>
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
           <i class="fa-solid fa-check"></i> Submit Expense
         </button>
       </form>
     </div>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <script>
     const API = window.location.origin + '/api';
+
+    // ── Leaflet Map ───────────────────────────────────────────────────────────
+    // Center on Anderson, SC
+    const map = L.map('client-map').setView([34.5034, -82.6501], 12);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Custom neon green marker icon
+    const neonIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width: 14px; height: 14px;
+        background: #39FF14;
+        border-radius: 50%;
+        border: 2px solid #0f1117;
+        box-shadow: 0 0 10px #39FF14, 0 0 20px rgba(57,255,20,0.5);
+      "></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+      popupAnchor: [0, -10],
+    });
+
+    // Store markers for later
+    let clientMarkers = [];
+
+    function plotClients(clients) {
+      // Clear existing markers
+      clientMarkers.forEach(m => map.removeLayer(m));
+      clientMarkers = [];
+
+      clients.forEach(c => {
+        if (c.lat != null && c.lon != null) {
+          const marker = L.marker([c.lat, c.lon], { icon: neonIcon }).addTo(map);
+          marker.bindPopup(`
+            <div style="min-width:160px;">
+              <p style="font-size:14px; font-weight:700; color:#39FF14; margin-bottom:6px;">${c.name}</p>
+              <p style="color:#9ca3af; font-size:12px; margin-bottom:4px;"><i class="fa-solid fa-location-dot" style="color:#39FF14; margin-right:4px;"></i>${c.address}</p>
+              <p style="color:#d1d5db; font-size:13px;"><i class="fa-solid fa-dollar-sign" style="color:#39FF14; margin-right:4px;"></i><strong>${usd(c.pricePerCut)}</strong> / cut</p>
+              ${c.phone ? `<p style="color:#9ca3af; font-size:11px; margin-top:4px;"><i class="fa-solid fa-phone" style="color:#39FF14; margin-right:4px;"></i>${c.phone}</p>` : ''}
+            </div>
+          `);
+          clientMarkers.push(marker);
+        }
+      });
+
+      // Fit bounds if we have markers
+      if (clientMarkers.length > 0) {
+        const group = L.featureGroup(clientMarkers);
+        map.fitBounds(group.getBounds().pad(0.2));
+      }
+    }
 
     // ── Clock ─────────────────────────────────────────────────────────────────
     function updateClock() {
@@ -277,14 +458,21 @@
         const container = document.getElementById('recent-expenses');
         if (summary.recentExpenses && summary.recentExpenses.length > 0) {
           container.innerHTML = summary.recentExpenses.map(e => `
-            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-              <div>
-                <p class="font-medium text-gray-800 text-sm">${e.category}</p>
-                <p class="text-xs text-gray-400">${e.date} · ${e.description || '—'}</p>
+            <div class="expense-row flex items-center justify-between py-2.5">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-red-900/30 border border-red-800/40 flex items-center justify-center">
+                  <i class="fa-solid fa-receipt text-red-400 text-xs"></i>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-100 text-sm">${e.category}</p>
+                  <p class="text-xs text-gray-500">${e.date} · ${e.description || '—'}</p>
+                </div>
               </div>
-              <span class="text-red-500 font-semibold text-sm">${usd(e.amount)}</span>
+              <span class="text-red-400 font-semibold text-sm">-${usd(e.amount)}</span>
             </div>
           `).join('');
+        } else {
+          container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No expenses yet.</p>';
         }
 
         // Weather grid
@@ -292,6 +480,11 @@
 
         // Calendar
         renderCalendar(weatherData.forecast);
+
+        // Plot clients on map
+        if (clients.clients) {
+          plotClients(clients.clients);
+        }
 
         // Clients table
         renderClientsTable(clients.clients);
@@ -315,12 +508,13 @@
       // 7-day row
       grid.innerHTML = forecast.map(d => {
         const dayName = new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' });
+        const isToday = d.date === forecast[0].date;
         return `
-          <div class="flex flex-col items-center gap-1 p-2 rounded-lg ${d.date === forecast[0].date ? 'bg-green-50 ring-1 ring-green-300' : 'hover:bg-gray-50'}">
-            <span class="text-xs font-medium text-gray-500">${dayName}</span>
+          <div class="flex flex-col items-center gap-1 p-2 rounded-lg transition ${isToday ? 'bg-green-900/20 border border-green-700/40' : 'hover:bg-[#2a2d3a]/50'}">
+            <span class="text-xs font-medium text-gray-400">${dayName}</span>
             <span class="text-xl">${d.icon}</span>
-            <span class="text-xs font-semibold">${Math.round(d.tempMax)}°</span>
-            <span class="text-xs text-gray-400">${Math.round(d.tempMin)}°</span>
+            <span class="text-xs font-semibold text-gray-100">${Math.round(d.tempMax)}°</span>
+            <span class="text-xs text-gray-500">${Math.round(d.tempMin)}°</span>
           </div>
         `;
       }).join('');
@@ -331,9 +525,8 @@
       const grid = document.getElementById('calendar-grid');
       if (!forecast) return;
 
-      // Get start of current week (Monday)
       const today = new Date();
-      const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mon
+      const dayOfWeek = (today.getDay() + 6) % 7;
       const monday = new Date(today);
       monday.setDate(today.getDate() - dayOfWeek);
 
@@ -345,10 +538,10 @@
         const isToday = dateStr === today.toISOString().split('T')[0];
 
         return `
-          <div class="flex flex-col items-center gap-1 p-2 rounded-lg border ${isToday ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}">
-            <span class="text-xs font-semibold ${isToday ? 'text-green-700' : 'text-gray-500'}">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-            <span class="text-sm font-bold text-gray-800">${date.getDate()}</span>
-            ${dayData ? `<span class="text-lg">${dayData.icon}</span><span class="text-xs text-gray-500">${Math.round(dayData.tempMax)}°</span>` : '<span class="text-lg">—</span>'}
+          <div class="flex flex-col items-center gap-1 p-2 rounded-lg border ${isToday ? 'calendar-today' : 'border-[#2a2d3a] hover:border-[#3a3d4a]'}">
+            <span class="text-xs font-semibold ${isToday ? 'text-neon' : 'text-gray-500'}">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+            <span class="text-sm font-bold text-gray-100">${date.getDate()}</span>
+            ${dayData ? `<span class="text-lg">${dayData.icon}</span><span class="text-xs text-gray-400">${Math.round(dayData.tempMax)}°</span>` : '<span class="text-lg opacity-30">—</span>'}
           </div>
         `;
       }).join('');
@@ -363,22 +556,23 @@
       const res = await fetch(API + '/clients');
       const data = await res.json();
       allClients = data.clients || [];
+      plotClients(allClients);
       renderClientsTable(allClients);
     }
 
     function renderClientsTable(clients) {
       const tbody = document.getElementById('client-table');
-      if (!clients.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No clients found.</td></tr>';
+      if (!clients || !clients.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No clients found.</td></tr>';
         return;
       }
       tbody.innerHTML = clients.map(c => `
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-4 py-3 font-medium text-gray-800">${c.name}</td>
-          <td class="px-4 py-3 text-gray-600 text-xs">${c.address}</td>
-          <td class="px-4 py-3 text-gray-700">${usd(c.pricePerCut)}</td>
-          <td class="px-4 py-3 text-gray-700">${c.totalCuts}</td>
-          <td class="px-4 py-3 text-gray-700">${c.mileageRoundtrip} mi</td>
+        <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
+          <td class="px-4 py-3 font-medium text-gray-100">${c.name}</td>
+          <td class="px-4 py-3 text-gray-400 text-xs">${c.address}</td>
+          <td class="px-4 py-3 text-neon font-semibold">${usd(c.pricePerCut)}</td>
+          <td class="px-4 py-3 text-gray-300">${c.totalCuts}</td>
+          <td class="px-4 py-3 text-gray-400">${c.mileageRoundtrip} mi</td>
         </tr>
       `).join('');
     }
@@ -403,17 +597,18 @@
       const tbody = document.getElementById('profit-body');
       const margins = data.margins || [];
       if (!margins.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data.</td></tr>';
         return;
       }
       tbody.innerHTML = margins.map(m => {
-        const marginClass = parseFloat(m.margin) >= 50 ? 'text-green-600' : parseFloat(m.margin) >= 25 ? 'text-yellow-600' : 'text-red-600';
+        const marginVal = parseFloat(m.margin);
+        const marginClass = marginVal >= 50 ? 'text-neon' : marginVal >= 25 ? 'text-yellow-400' : 'text-red-400';
         return `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-4 py-3 font-medium text-gray-800">${m.name}</td>
-            <td class="px-4 py-3 text-gray-700">${usd(m.revenue)}</td>
-            <td class="px-4 py-3 text-red-500">${usd(m.expenseShare)}</td>
-            <td class="px-4 py-3 text-blue-700 font-semibold">${usd(m.net)}</td>
+          <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
+            <td class="px-4 py-3 font-medium text-gray-100">${m.name}</td>
+            <td class="px-4 py-3 text-green-400">${usd(m.revenue)}</td>
+            <td class="px-4 py-3 text-red-400">${usd(m.expenseShare)}</td>
+            <td class="px-4 py-3 text-purple-400 font-semibold">${usd(m.net)}</td>
             <td class="px-4 py-3 font-bold ${marginClass}">${pct(m.margin)}</td>
           </tr>
         `;
@@ -454,7 +649,7 @@
           throw new Error(err.error || 'Failed to submit');
         }
         closeExpenseModal();
-        await loadDashboard(); // Refresh cards
+        await loadDashboard();
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
