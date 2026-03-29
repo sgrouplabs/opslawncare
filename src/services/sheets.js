@@ -103,6 +103,20 @@ async function addExpense({ category, amount, date, description }) {
   return { id, category, amount, date, description };
 }
 
+async function addClients(clientsArray) {
+  const rows = clientsArray.map(c => {
+    const id = uuidv4();
+    return [id, c.name, c.address, c.pricePerCut, c.totalCuts, c.mileageRoundtrip, c.notes || ''];
+  });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Clients!A2:G',
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: rows },
+  });
+  return clientsArray.map((c, i) => ({ id: uuidv4(), ...c }));
+}
+
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 async function getDashboardSummary() {
@@ -176,6 +190,7 @@ module.exports = {
   getClientById,
   getExpenses,
   addExpense,
+  addClients,
   getDashboardSummary,
   getProfitMargins,
   getOptimizedRoute,

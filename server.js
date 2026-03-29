@@ -18,6 +18,10 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/frontend/index.html');
 });
 
+app.get('/clients', (req, res) => {
+  res.sendFile(__dirname + '/frontend/clients.html');
+});
+
 app.listen(PORT, () => {
   console.log(`Ops Lawncare server running on http://localhost:${PORT}`);
 });

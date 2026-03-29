@@ -31,6 +31,20 @@ router.get('/clients/:id', async (req, res) => {
   }
 });
 
+router.post('/clients/bulk', async (req, res) => {
+  const { clients } = req.body;
+  if (!Array.isArray(clients) || clients.length === 0) {
+    return res.status(400).json({ error: 'Missing or invalid "clients" array', code: 'INVALID_REQUEST' });
+  }
+  try {
+    const added = await sheets.addClients(clients);
+    res.status(201).json({ success: true, count: added.length, clients: added });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add clients', code: 'CLIENTS_ADD_ERROR' });
+  }
+});
+
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
 router.get('/expenses', async (req, res) => {

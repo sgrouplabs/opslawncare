@@ -137,8 +137,14 @@
       </div>
       <div class="flex items-center gap-4 text-sm">
         <span id="clock" class="text-gray-400 hidden sm:block"></span>
+        <a href="/clients.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-users"></i> <span class="hidden sm:inline">Clients</span>
+        </a>
+        <button onclick="openAddClientModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
+          <i class="fa-solid fa-user-plus"></i> <span class="hidden sm:inline">Add Client</span>
+        </button>
         <button onclick="openExpenseModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
-          <i class="fa-solid fa-plus"></i> Add Expense
+          <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Add Expense</span>
         </button>
       </div>
     </div>
@@ -355,6 +361,77 @@
         <div id="expense-error" class="text-red-400 text-sm hidden"></div>
         <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
           <i class="fa-solid fa-check"></i> Submit Expense
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Client Modal -->
+  <div id="add-client-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
+    <div class="card rounded-2xl w-full max-w-lg mx-4 p-6 relative border border-[#2a2d3a] max-h-[90vh] overflow-y-auto">
+      <button onclick="closeAddClientModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-user-plus text-neon"></i> Add Client(s)
+      </h3>
+      <form id="add-client-form" onsubmit="submitClients(event)" class="space-y-4">
+        <div id="client-form-rows">
+          <!-- Initial client row -->
+          <div class="client-form-row bg-[#12151e] rounded-xl p-4 border border-[#2a2d3a] mb-3">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-xs font-semibold text-neon uppercase tracking-wide client-row-label">Client #1</span>
+              <button type="button" onclick="removeClientRow(this)" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition hidden remove-btn">
+                <i class="fa-solid fa-trash-can mr-1"></i>Remove
+              </button>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Client Name</label>
+                <input type="text" name="client_name" required placeholder="e.g. John Smith"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Address</label>
+                <input type="text" name="client_address" required placeholder="123 Main St, Anderson, SC"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1">Price Per Cut ($)</label>
+                  <input type="number" name="price_per_cut" step="0.01" min="0" required placeholder="0.00"
+                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
+                  <input type="number" name="total_cuts" min="0" required placeholder="0"
+                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
+                <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
+                <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Another Client Button -->
+        <button type="button" onclick="addAnotherClientRow()" class="w-full border-2 border-dashed border-[#2a2d3a] hover:border-green-600 text-gray-400 hover:text-green-400 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus"></i> Add Another Client
+        </button>
+
+        <div id="add-client-error" class="text-red-400 text-sm hidden"></div>
+        <div id="add-client-success" class="text-green-400 text-sm hidden"></div>
+
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Add All Clients
         </button>
       </form>
     </div>
@@ -656,9 +733,151 @@
       }
     }
 
+    // ── Add Client Modal ──────────────────────────────────────────────────────
+    let clientRowCount = 1;
+
+    function openAddClientModal() {
+      document.getElementById('add-client-modal').classList.add('active');
+      document.getElementById('add-client-error').classList.add('hidden');
+      document.getElementById('add-client-success').classList.add('hidden');
+      document.getElementById('add-client-form').reset();
+      // Reset to single row
+      const rows = document.getElementById('client-form-rows');
+      rows.innerHTML = createClientRowHTML(1);
+      clientRowCount = 1;
+    }
+
+    function closeAddClientModal() {
+      document.getElementById('add-client-modal').classList.remove('active');
+    }
+
+    function createClientRowHTML(num) {
+      return `
+        <div class="client-form-row bg-[#12151e] rounded-xl p-4 border border-[#2a2d3a] mb-3">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-semibold text-neon uppercase tracking-wide client-row-label">Client #${num}</span>
+            <button type="button" onclick="removeClientRow(this)" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition ${num === 1 ? 'hidden' : ''} remove-btn">
+              <i class="fa-solid fa-trash-can mr-1"></i>Remove
+            </button>
+          </div>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Client Name</label>
+              <input type="text" name="client_name" required placeholder="e.g. John Smith"
+                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Address</label>
+              <input type="text" name="client_address" required placeholder="123 Main St, Anderson, SC"
+                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Price Per Cut ($)</label>
+                <input type="number" name="price_per_cut" step="0.01" min="0" required placeholder="0.00"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
+                <input type="number" name="total_cuts" min="0" required placeholder="0"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
+              <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
+                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
+              <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
+                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"></textarea>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function addAnotherClientRow() {
+      clientRowCount++;
+      const rows = document.getElementById('client-form-rows');
+      rows.insertAdjacentHTML('beforeend', createClientRowHTML(clientRowCount));
+    }
+
+    function removeClientRow(button) {
+      const row = button.closest('.client-form-row');
+      row.remove();
+      // Re-number remaining rows
+      const allRows = document.querySelectorAll('#client-form-rows .client-form-row');
+      clientRowCount = allRows.length;
+      allRows.forEach((r, i) => {
+        r.querySelector('.client-row-label').textContent = `Client #${i + 1}`;
+        const removeBtn = r.querySelector('.remove-btn');
+        if (removeBtn) removeBtn.classList.toggle('hidden', i === 0);
+      });
+    }
+
+    async function submitClients(e) {
+      e.preventDefault();
+      const errorEl = document.getElementById('add-client-error');
+      const successEl = document.getElementById('add-client-success');
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+
+      const allRows = document.querySelectorAll('#client-form-rows .client-form-row');
+      const clients = [];
+
+      for (const row of allRows) {
+        const name = row.querySelector('[name="client_name"]').value.trim();
+        const address = row.querySelector('[name="client_address"]').value.trim();
+        const pricePerCut = parseFloat(row.querySelector('[name="price_per_cut"]').value) || 0;
+        const totalCuts = parseInt(row.querySelector('[name="total_cuts"]').value) || 0;
+        const mileageRoundtrip = parseFloat(row.querySelector('[name="mileage_roundtrip"]').value) || 0;
+        const notes = row.querySelector('[name="client_notes"]').value.trim();
+
+        if (!name || !address) {
+          errorEl.textContent = 'Client Name and Address are required for all entries.';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        clients.push({
+          name,
+          address,
+          pricePerCut,
+          totalCuts,
+          mileageRoundtrip,
+          notes,
+        });
+      }
+
+      try {
+        const res = await fetch(API + '/clients/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clients }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to add clients');
+        }
+        successEl.textContent = `Successfully added ${clients.length} client(s)!`;
+        successEl.classList.remove('hidden');
+        setTimeout(() => {
+          closeAddClientModal();
+          window.location.reload();
+        }, 1200);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
     // ── Close modal on backdrop click ─────────────────────────────────────────
     document.getElementById('expense-modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeExpenseModal();
+    });
+    document.getElementById('add-client-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAddClientModal();
     });
 
     // ── Boot ───────────────────────────────────────────────────────────────────
