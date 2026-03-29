@@ -443,8 +443,53 @@
   <script>
     const API = window.location.origin + '/api';
 
+    // ── Nominatim Geocoding ─────────────────────────────────────────────────
+    // Nominatim requires a User-Agent identifying your application.
+    // Results are cached in memory so repeat renders don't re-fetch.
+    const GEOCODE_CACHE = new Map();
+    const GEOCODE_BASE   = 'https://nominatim.openstreetmap.org/search?format=json&q=';
+    const GEOCODE_DELAY  = 1100; // ms between requests (Nominatim policy: max 1 req/s)
+    let   geocodeQueue   = [];
+    let   geocodeTimer   = null;
+
+    /**
+     * Geocode a single address string via Nominatim.
+     * Respects rate limits, caches results in GEOCODE_CACHE.
+     * Falls back to Anderson, SC center if geocoding fails.
+     */
+    async function geocodeAddress(address) {
+      if (!address) return null;
+      if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
+      return new Promise((resolve) => {
+        geocodeQueue.push({ address, resolve });
+        if (!geocodeTimer) processGeocodeQueue();
+      });
+    }
+
+    async function processGeocodeQueue() {
+      if (!geocodeQueue.length) { geocodeTimer = null; return; }
+      const { address, resolve } = geocodeQueue.shift();
+      try {
+        const url = GEOCODE_BASE + encodeURIComponent(address + ', Anderson, SC, USA');
+        const res = await fetch(url, {
+          headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncareDashboard/1.0' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const lat = data[0] ? parseFloat(data[0].lat) : null;
+        const lon = data[0] ? parseFloat(data[0].lon) : null;
+        GEOCODE_CACHE.set(address, lat && lon ? { lat, lon } : null);
+        resolve(GEOCODE_CACHE.get(address));
+      } catch (_) {
+        GEOCODE_CACHE.set(address, null);
+        resolve(null);
+      }
+      // Drain queue with delay
+      geocodeTimer = setTimeout(processGeocodeQueue, GEOCODE_DELAY);
+    }
+
     // ── Leaflet Map ───────────────────────────────────────────────────────────
-    // Center on Anderson, SC
     const map = L.map('client-map').setView([34.5034, -82.6501], 12);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -452,49 +497,65 @@
       maxZoom: 19,
     }).addTo(map);
 
-    // Custom neon green marker icon
     const neonIcon = L.divIcon({
       className: '',
-      html: `<div style="
-        width: 14px; height: 14px;
-        background: #39FF14;
-        border-radius: 50%;
-        border: 2px solid #0f1117;
-        box-shadow: 0 0 10px #39FF14, 0 0 20px rgba(57,255,20,0.5);
-      "></div>`,
+      html: `<div style="width:14px;height:14px;background:#39FF14;border-radius:50%;border:2px solid #0f1117;box-shadow:0 0 10px #39FF14,0 0 20px rgba(57,255,20,0.5);"></div>`,
       iconSize: [14, 14],
       iconAnchor: [7, 7],
       popupAnchor: [0, -10],
     });
 
-    // Store markers for later
     let clientMarkers = [];
 
-    function plotClients(clients) {
-      // Clear existing markers
+    /**
+     * Fetch coordinates for all clients and plot neon-green markers.
+     * Re-fetches geocode cache as needed (cached addresses are instant).
+     */
+    async function plotClients(clients) {
       clientMarkers.forEach(m => map.removeLayer(m));
       clientMarkers = [];
 
-      clients.forEach(c => {
-        if (c.lat != null && c.lon != null) {
-          const marker = L.marker([c.lat, c.lon], { icon: neonIcon }).addTo(map);
-          marker.bindPopup(`
-            <div style="min-width:160px;">
-              <p style="font-size:14px; font-weight:700; color:#39FF14; margin-bottom:6px;">${c.name}</p>
-              <p style="color:#9ca3af; font-size:12px; margin-bottom:4px;"><i class="fa-solid fa-location-dot" style="color:#39FF14; margin-right:4px;"></i>${c.address}</p>
-              <p style="color:#d1d5db; font-size:13px;"><i class="fa-solid fa-dollar-sign" style="color:#39FF14; margin-right:4px;"></i><strong>${usd(c.pricePerCut)}</strong> / cut</p>
-              ${c.phone ? `<p style="color:#9ca3af; font-size:11px; margin-top:4px;"><i class="fa-solid fa-phone" style="color:#39FF14; margin-right:4px;"></i>${c.phone}</p>` : ''}
-            </div>
-          `);
-          clientMarkers.push(marker);
-        }
-      });
+      if (!clients || !clients.length) return;
 
-      // Fit bounds if we have markers
-      if (clientMarkers.length > 0) {
-        const group = L.featureGroup(clientMarkers);
-        map.fitBounds(group.getBounds().pad(0.2));
+      // Kick off all geocode requests (cached addresses resolve immediately)
+      const geoPromises = clients.map(c => geocodeAddress(c.address));
+
+      // Resolve all in parallel — queue serialises the actual HTTP calls
+      const geoResults = await Promise.all(geoPromises);
+
+      const markersWithCoords = [];
+      for (let i = 0; i < clients.length; i++) {
+        const coord = geoResults[i];
+        if (!coord) continue;  // geocode failed silently — skip marker
+
+        const c = clients[i];
+        const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon }).addTo(map);
+        marker.bindPopup(`
+          <div style="min-width:180px;">
+            <p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p>
+            <p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">
+              <i class="fa-solid fa-location-dot" style="color:#39FF14;margin-right:4px;"></i>${c.address}
+            </p>
+            <p style="color:#d1d5db;font-size:13px;">
+              <i class="fa-solid fa-dollar-sign" style="color:#39FF14;margin-right:4px;"></i>
+              <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts
+            </p>
+          </div>
+        `);
+        markersWithCoords.push(marker);
       }
+
+      clientMarkers = markersWithCoords;
+
+      // Fit map to show all markers, or reset to Anderson if none resolved
+      if (markersWithCoords.length > 0) {
+        const group = L.featureGroup(markersWithCoords);
+        map.fitBounds(group.getBounds().pad(0.15));
+      } else {
+        map.setView([34.5034, -82.6501], 12);
+      }
+
+      console.log(`[map] ${markersWithCoords.length}/${clients.length} clients plotted`);
     }
 
     // ── Clock ─────────────────────────────────────────────────────────────────
