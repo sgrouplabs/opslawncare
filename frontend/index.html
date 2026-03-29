@@ -520,6 +520,11 @@
           fetch(API + '/clients').then(r => r.json()),
         ]);
 
+        // DEBUG: log raw API responses
+        console.log('[DEBUG index] GET /dashboard/summary →', JSON.stringify(summary));
+        console.log('[DEBUG index] GET /clients →', JSON.stringify(clients));
+        console.log('[DEBUG index] clientCount from API:', summary.clientCount, '| client array:', (clients.clients || []).length);
+
         // KPIs
         document.getElementById('kpi-revenue').textContent = usd(summary.totalRevenue);
         document.getElementById('kpi-profit').textContent = pct(summary.profitMargin);

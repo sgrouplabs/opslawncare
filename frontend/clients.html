@@ -247,11 +247,21 @@
       try {
         const res = await fetch(API + '/clients');
         const data = await res.json();
+        console.log('[DEBUG] GET /api/clients raw response:', data);
+        console.log('[DEBUG] client array length:', (data.clients || []).length);
+        if (data.clients && data.clients.length > 0) {
+          console.log('[DEBUG] first client sample:', JSON.stringify(data.clients[0]));
+        }
+        if (!res.ok) {
+          console.error('[DEBUG] HTTP error:', res.status, data);
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
         allClients = data.clients || [];
         renderStats(allClients);
         renderTable(allClients);
         document.getElementById('client-count').textContent = `${allClients.length} client${allClients.length !== 1 ? 's' : ''}`;
       } catch (err) {
+        console.error('[DEBUG] loadClients error:', err);
         document.getElementById('clients-tbody').innerHTML =
           `<tr><td colspan="7" class="px-4 py-10 text-center text-red-400">Failed to load clients: ${err.message}</td></tr>`;
       }

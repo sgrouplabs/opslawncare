@@ -43,45 +43,47 @@ async function appendRow(range, values) {
   });
 }
 
-// Converts sheet rows [{name, pricePerCut, totalCuts, mileageRoundtrip}, ...]
-// into structured client objects.
+// Converts sheet rows into structured client objects.
+// Column indices are explicitly mapped by ordinal position (not by header name indexOf)
+// to prevent silent corruption when extra columns (e.g. Notes) exist in the sheet.
+// Column order (must match sheet Row 1 exactly):
+//   A = ID, B = Client Name, C = Address, D = Price per Cut, E = Total Cuts, F = Mileage Roundtrip
 function parseClients(rows) {
   if (!rows || rows.length < 2) return [];
-  const [header, ...data] = rows;
-  return data.map(row => {
-    const obj = {};
-    header.forEach((col, i) => { obj[col] = row[i] || ''; });
-    return {
-      id: obj['ID'] || uuidv4(),
-      name: obj['Client Name'] || '',
-      address: obj['Address'] || '',
-      pricePerCut: parseFloat(obj['Price per Cut'] || 0),
-      totalCuts: parseInt(obj['Total Cuts'] || 0),
-      mileageRoundtrip: parseFloat(obj['Mileage Roundtrip'] || 0),
-    };
-  });
+  const [, ...dataRows] = rows;
+  return dataRows
+    .filter(row => row && row.length >= 6)   // guard: skip malformed/empty rows
+    .map(row => ({
+      id:                 row[0] || uuidv4(),
+      name:               row[1] || '',
+      address:            row[2] || '',
+      pricePerCut:        parseFloat(row[3]) || 0,
+      totalCuts:          parseInt(row[4]) || 0,
+      mileageRoundtrip:   parseFloat(row[5]) || 0,
+    }));
 }
 
+// Expenses columns by ordinal position (A=0, B=1, ...):
+//   0=ID, 1=Category, 2=Amount, 3=Date, 4=Description
 function parseExpenses(rows) {
   if (!rows || rows.length < 2) return [];
-  const [header, ...data] = rows;
-  return data.map(row => {
-    const obj = {};
-    header.forEach((col, i) => { obj[col] = row[i] || ''; });
-    return {
-      id: obj['ID'] || uuidv4(),
-      category: obj['Category'] || '',
-      amount: parseFloat(obj['Amount'] || 0),
-      date: obj['Date'] || '',
-      description: obj['Description'] || '',
-    };
-  });
+  const [, ...dataRows] = rows;
+  return dataRows
+    .filter(row => row && row.length >= 5)
+    .map(row => ({
+      id:          row[0] || uuidv4(),
+      category:    row[1] || '',
+      amount:      parseFloat(row[2]) || 0,
+      date:        row[3] || '',
+      description: row[4] || '',
+    }));
 }
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 async function getClients() {
-  const rows = await getSheetValues('Clients!A2:F');
+  // Read 7 columns (A-G) to match what addClients writes (ID, Name, Address, Price, Cuts, Mileage, Notes)
+  const rows = await getSheetValues('Clients!A2:G');
   return parseClients(rows);
 }
 
