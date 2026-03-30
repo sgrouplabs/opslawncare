@@ -69,6 +69,30 @@ router.post('/expenses', async (req, res) => {
   }
 });
 
+// ─── Employees ───────────────────────────────────────────────────────────────
+
+router.get('/employees', async (req, res) => {
+  try {
+    const employees = await sheets.getEmployees();
+    res.json({ employees });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch employees', code: 'EMPLOYEES_FETCH_ERROR' });
+  }
+});
+
+router.post('/employees', async (req, res) => {
+  const { name, daysPerWeek, dailyPay, assignedDays } = req.body;
+  if (!name || daysPerWeek == null || dailyPay == null || !Array.isArray(assignedDays)) {
+    return res.status(400).json({ error: 'Missing required fields: name, daysPerWeek, dailyPay, assignedDays[]', code: 'MISSING_FIELDS' });
+  }
+  try {
+    const employee = await sheets.upsertEmployee({ id: req.body.id, name, daysPerWeek, dailyPay, assignedDays });
+    res.status(201).json({ employee });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to upsert employee', code: 'EMPLOYEE_UPSERT_ERROR' });
+  }
+});
+
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
 router.get('/dashboard/summary', async (req, res) => {

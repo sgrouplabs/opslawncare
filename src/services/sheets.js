@@ -43,6 +43,15 @@ async function appendRow(range, values) {
   });
 }
 
+async function updateRow(range, values) {
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [values] },
+  });
+}
+
 // Converts sheet rows into structured client objects.
 // Column indices are explicitly mapped by ordinal position (not by header name indexOf)
 // to prevent silent corruption when extra columns (e.g. Notes) exist in the sheet.
@@ -76,6 +85,22 @@ function parseExpenses(rows) {
       amount:      parseFloat(row[2]) || 0,
       date:        row[3] || '',
       description: row[4] || '',
+    }));
+}
+
+// Employees columns by ordinal position (A=0, B=1, ...):
+//   0=ID, 1=Name, 2=Days Per Week, 3=Daily Pay, 4=Assigned Days (comma-separated)
+function parseEmployees(rows) {
+  if (!rows || rows.length < 2) return [];
+  const [, ...dataRows] = rows;
+  return dataRows
+    .filter(row => row && row.length >= 5)
+    .map(row => ({
+      id:           row[0] || uuidv4(),
+      name:         row[1] || '',
+      daysPerWeek:  parseInt(row[2]) || 0,
+      dailyPay:     parseFloat(row[3]) || 0,
+      assignedDays: row[4] ? row[4].split(',').map(d => d.trim()) : [],
     }));
 }
 
@@ -119,6 +144,31 @@ async function addClients(clientsArray) {
   return clientsArray.map((c, i) => ({ id: uuidv4(), ...c }));
 }
 
+// ─── Employees ─────────────────────────────────────────────────────────────────
+
+async function getEmployees() {
+  const rows = await getSheetValues('Employees!A2:E');
+  return parseEmployees(rows);
+}
+
+async function upsertEmployee(data) {
+  const employees = await getEmployees();
+  const idx = employees.findIndex(e => e.id === data.id);
+  const assignedDaysStr = Array.isArray(data.assignedDays) ? data.assignedDays.join(',') : (data.assignedDays || '');
+  if (idx >= 0) {
+    const rowNum = idx + 2; // row 2 is first data row
+    await updateRow(`Employees!A${rowNum}:E`, [data.id, data.name, data.daysPerWeek, data.dailyPay, assignedDaysStr]);
+    return { ...employees[idx], ...data, assignedDays: data.assignedDays };
+  }
+  await appendRow('Employees!A2:E', [data.id || 'emp-' + String(Date.now()), data.name, data.daysPerWeek, data.dailyPay, assignedDaysStr]);
+  return { id: data.id || 'emp-' + String(Date.now()), ...data };
+}
+
+async function getTotalWeeklyLabor() {
+  const employees = await getEmployees();
+  return employees.reduce((sum, e) => sum + (e.dailyPay * e.daysPerWeek), 0);
+}
+
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 async function getDashboardSummary() {
@@ -131,8 +181,11 @@ async function getDashboardSummary() {
   // Total expenses
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // Net profit
-  const netProfit = totalRevenue - totalExpenses;
+  // Total weekly labor cost
+  const totalLaborExpense = await getTotalWeeklyLabor();
+
+  // Net profit (revenue minus expenses AND labor)
+  const netProfit = totalRevenue - (totalExpenses + totalLaborExpense);
 
   // Profit margin %
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
@@ -146,6 +199,7 @@ async function getDashboardSummary() {
   return {
     totalRevenue,
     totalExpenses,
+    totalLaborExpense,
     netProfit,
     profitMargin,
     pendingThisWeek,
@@ -193,6 +247,9 @@ module.exports = {
   getExpenses,
   addExpense,
   addClients,
+  getEmployees,
+  upsertEmployee,
+  getTotalWeeklyLabor,
   getDashboardSummary,
   getProfitMargins,
   getOptimizedRoute,

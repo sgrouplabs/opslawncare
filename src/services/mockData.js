@@ -1,5 +1,29 @@
 const { v4: uuidv4 } = require('uuid');
 
+// ─── Anderson, SC Mock Employees ───────────────────────────────────────────
+
+const EMPLOYEES = [
+  { id: 'emp-001', name: 'Bentley',  daysPerWeek: 5, dailyPay: 145, assignedDays: ['Monday','Tuesday','Wednesday','Thursday','Friday'] },
+  { id: 'emp-002', name: 'Kevin',    daysPerWeek: 4, dailyPay: 135, assignedDays: ['Tuesday','Wednesday','Thursday','Friday'] },
+  { id: 'emp-003', name: 'Mr. Lee',  daysPerWeek: 3, dailyPay: 155, assignedDays: ['Monday','Wednesday','Friday'] },
+];
+
+function calcWeeklyPay(emp) { return emp.dailyPay * emp.daysPerWeek; }
+
+function getEmployees() { return EMPLOYEES.map(e => ({...e})); }
+
+function upsertEmployee(data) {
+  const idx = EMPLOYEES.findIndex(e => e.id === data.id);
+  if (idx >= 0) { EMPLOYEES[idx] = {...EMPLOYEES[idx], ...data}; return EMPLOYEES[idx]; }
+  const newEmp = { id: 'emp-' + String(Date.now()), ...data };
+  EMPLOYEES.push(newEmp);
+  return newEmp;
+}
+
+function getTotalWeeklyLabor() {
+  return EMPLOYEES.reduce((sum, e) => sum + calcWeeklyPay(e), 0);
+}
+
 // ─── Anderson, SC Mock Clients ──────────────────────────────────────────────
 // Coordinates: Anderson, SC ≈ 34.5034° N, -82.6501° W
 
@@ -125,13 +149,15 @@ async function getDashboardSummary() {
 
   const totalRevenue = clients.reduce((sum, c) => sum + (c.pricePerCut * c.totalCuts), 0);
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const netProfit = totalRevenue - totalExpenses;
+  const totalLaborExpense = getTotalWeeklyLabor();
+  const netProfit = totalRevenue - (totalExpenses + totalLaborExpense);
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
   const recentExpenses = expenses.slice(-3).reverse();
 
   return {
     totalRevenue,
     totalExpenses,
+    totalLaborExpense,
     netProfit,
     profitMargin,
     pendingThisWeek: clients.length,
@@ -190,6 +216,9 @@ module.exports = {
     MOCK_EXPENSES.push(expense);
     return expense;
   },
+  getEmployees: async () => getEmployees(),
+  upsertEmployee: async (data) => upsertEmployee(data),
+  getTotalWeeklyLabor: async () => getTotalWeeklyLabor(),
   getDashboardSummary,
   getProfitMargins,
   getOptimizedRoute,

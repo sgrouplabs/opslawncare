@@ -1,79 +1,128 @@
 # Agent 2 — Frontend & UI/UX Changes
 
-## Files Modified
-
-### `frontend/index.html`
-
-**Navbar changes:**
-- Added `Clients` nav link (pointing to `/clients.html`) next to the clock, with Dashboard link also available
-- Added `Add Client` button (neon green `btn-neon`) next to the existing `Add Expense` button
-- Both buttons visible with icons on desktop; icon-only on mobile via `hidden sm:inline` pattern
-
-**New "Add Client" modal (`#add-client-modal`):**
-- Dark-themed modal (`bg-gray-800` card, `bg-black/70` backdrop, neon green header)
-- Modal ID: `add-client-modal`
-- Fields (matching Google Sheets columns):
-  - Client Name (text, required)
-  - Address (text, required)
-  - Price Per Cut (number, required)
-  - Total Cuts (number, required)
-  - Mileage Roundtrip (number, required)
-  - Notes (textarea, optional)
-- "Add Another Client" button: dynamically inserts another full client block via `addAnotherClientRow()`
-- Each extra block has a "Remove" button (hidden on the first row)
-- Submit button: "Add All Clients" → `POST /api/clients/bulk` with all client rows
-- Success: close modal + `window.location.reload()`
-- Error: displays error message inline in the modal
-- Backdrop click closes the modal
-
-**JavaScript additions:**
-- `openAddClientModal()` — opens modal, resets form, resets row counter
-- `closeAddClientModal()` — closes modal
-- `addAnotherClientRow()` — increments `clientRowCount`, inserts new client block HTML
-- `removeClientRow(button)` — removes the closest `.client-form-row`, re-numbers remaining rows, hides remove btn on row 1
-- `submitClients(e)` — collects all form rows, validates, `POST /api/clients/bulk`, handles success/error
-- Backdrop click handler added for `#add-client-modal`
+## Overview
+Implemented employee management UI for the Ops Lawncare dashboard (matching existing dark theme: `#0f1117` bg, `#39FF14` neon green, `#1a1d27` cards, `#2a2d3a` borders).
 
 ---
 
-## Files Created
+## Files Changed
 
-### `frontend/clients.html`
+### 1. `frontend/index.html` — UPDATED
 
-**Layout:**
-- Full-page dark-themed layout matching index.html exactly (`#0f1117` bg, `#1a1d27` cards, `#39FF14` neon green accents)
-- Same navbar: logo left, clock, Dashboard link, active Clients link, Add Client button
+#### Navbar
+- Added **Dashboard** link (icon: `fa-chart-pie`, href `/`) between clock and Employees
+- Added **Employees** nav link (`fa-users-gear`, href `/employees.html`) with active styling: `text-neon bg-green-900/20 border border-green-700/40`
+- All nav links styled: `text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50`
 
-**Stats row (4 KPI cards):**
-- Total Clients | Total Revenue | Total Mileage | Avg Price/Cut
+#### Weekly Schedule Card (left sidebar)
+- Placed between 7-Day Weather Forecast and Week Calendar
+- Header: `📅 Weekly Schedule` with `fa-calendar-week` icon + "Add Employee" `btn-neon` button
+- 7-column grid (Mon–Sun) showing employee pills in assigned day columns
+- Employee color coding:
+  - **Bentley** → blue (`bg-blue-900/40 border-blue-600 text-blue-300`)
+  - **Kevin** → purple (`bg-purple-900/40 border-purple-600 text-purple-300`)
+  - **Mr. Lee** → orange (`bg-orange-900/40 border-orange-600 text-orange-300`)
+  - Unknown names cycle through cyan, pink, yellow, red fallbacks
+- Each pill shows: employee name + daily pay (`$XXX/d`)
+- Empty days show `—` in dim text
+- No employees state: "No employees scheduled yet."
 
-**Full-page client table:**
-- Columns: Client Name | Address | Price/Cut | Total Cuts | **Revenue** | Mileage | Actions
-- Revenue = `pricePerCut × totalCuts` (computed client-side)
-- Columns sortable by clicking headers: Client Name, Price/Cut, Total Cuts, Revenue, Mileage
-- Sort indicators (▲/▼) on active column — font-awesome sort-up/sort-down icons
-- Delete action per row (with confirm dialog) → `DELETE /api/clients/:id`
-- Empty/loading states handled
+#### Employee Modal (add/edit, reusable)
+- Added to index.html, hidden by default
+- Fields: Name (text), Days/Week (number), Daily Pay ($ number)
+- Assigned Days: 7 toggle buttons (M/T/W/T/F/S/S) using CSS peer-checked pattern
+  - Unchecked: `border-[#2a2d3a] text-gray-400`
+  - Checked: `bg-green-900/40 text-neon border-green-600`
+- Edit mode: pre-fills all fields, changes title to "Edit Employee", button "Save Changes", icon to `fa-user-pen`
+- Add mode: title "Add Employee", button "Add Employee", icon `fa-users-gear`
+- Submits POST (create) or PUT (update) to `/api/employees`
+- Error display in red below form
+- Backdrop click closes modal
 
-**Add Client modal:**
-- Exact same modal as index.html (same functions shared)
-- On success: refreshes the table without full page reload
-
-**JavaScript functions:**
-- `loadClients()` — fetches `/api/clients`, renders table and stats
-- `renderStats(clients)` — aggregates and shows 4 KPI values
-- `renderTable(clients)` — renders table rows with computed revenue column
-- `tableSort(key)` — sorts by name/price/total/revenue/mileage, flips ascending/descending, updates sort icons
-- `deleteClient(id)` — confirms, sends `DELETE /api/clients/:id`, reloads table
-- Modal functions: `openAddClientModal()`, `closeAddClientModal()`, `addAnotherClientRow()`, `removeClientRow()`, `submitClients()` (same logic as index.html)
-- `window.location.origin + '/api'` used as API base (works on any host/port)
+#### JavaScript Added
+- `window.employees` cache (fetched from GET `/api/employees`)
+- `loadEmployees()` — fetches employees, stores in cache, calls `renderWeeklySchedule()`
+- `renderWeeklySchedule(employees)` — builds the 7-column grid with colored pills
+- `getEmpColor(name)` — returns color config object for employee
+- `openEmployeeModal(employee?)` — opens modal, optionally pre-fills for edit
+- `closeEmployeeModal()` — closes modal
+- `submitEmployee(e)` — POST/PUT to `/api/employees`, reloads on success
+- Backdrop click listener on `#employee-modal`
+- Called `loadEmployees()` in Boot section
 
 ---
 
-## Theme Matched (unchanged from existing index.html)
-- Background: `#0f1117`
-- Cards: `#1a1d27`
-- Neon green: `#39FF14` / `green-400`
-- Glow borders: `box-shadow: 0 0 8px rgba(57,255,20,0.4)`
-- Font: Segoe UI / system-ui
-- All Tailwind utility classes preserved exactly
+### 2. `frontend/employees.html` — CREATED
+
+#### Navbar (matches index.html + clients.html)
+- Logo + "Ops Lawncare Anderson, SC"
+- Dashboard (`/`) | Employees (active: `text-neon bg-green-900/20 border border-green-700/40`) | Clients (`/clients.html`)
+- Clock display
+
+#### Header
+- Page title: "👥 Employees" with `fa-users-gear` icon
+- Subtitle: "Manage your crew, schedules, and labor costs"
+- Badge showing employee count
+- "Add Employee" `btn-neon` button
+
+#### 4 Stat Cards
+- **Total Employees** — `text-neon`, from `allEmployees.length`
+- **Weekly Labor Cost** — `text-orange-400`, sum of `(daysPerWeek × dailyPay)` for all employees
+- **Highest Paid Employee** — `text-purple-400`, employee with max `dailyPay`
+- **Most Scheduled Employee** — `text-blue-400`, employee with max `daysPerWeek`
+
+#### Employee Table
+- Columns: Name | Days/Week | Daily Pay | Weekly Cost | Assigned Days | Actions
+- **Weekly Cost** = `daysPerWeek × dailyPay` (computed, displayed in `text-orange-400`)
+- **Assigned Days**: colored badge pills for each day (same color as employee name pill)
+  - Badge shows day letter (M/T/W/T/F/S/S) in employee's color
+- **Actions**: "Edit" button (blue, `fa-pen`) + "Delete" button (red, `fa-trash-can`)
+- Empty state: "No employees yet. Add your first employee above!"
+- Loading state: "Loading employees..."
+
+#### Employee Modal (identical to index.html modal)
+- Same fields, same styling, same behavior
+- Edit mode pre-fills and changes icon/title
+- Submits to `/api/employees` (POST) or `/api/employees/:id` (PUT)
+- Delete sends `DELETE /api/employees/:id`
+
+#### JavaScript
+- `allEmployees` array (module-level)
+- `loadEmployees()` — fetches GET `/api/employees`, updates stats + table
+- `renderStats(employees)` — computes and updates all 4 stat cards
+- `renderEmployeesTable(employees)` — builds full table with edit/delete buttons
+- `getEmpColor(name)` — same color mapping as index.html
+- `openEmployeeModal(employee?)` — open in add or edit mode
+- `closeEmployeeModal()` — close modal
+- `submitEmployee(e)` — POST/PUT based on presence of hidden `#emp-id` field
+- `deleteEmployee(id)` — DELETE confirm dialog → `DELETE /api/employees/:id`
+- Backdrop click closes modal
+- Boot: calls `loadEmployees()`
+
+---
+
+## Styling Reference (exact values matched)
+| Token | Value |
+|---|---|
+| `--neon-green` | `#39FF14` |
+| Background | `#0f1117` |
+| Card bg | `#1a1d27` |
+| Card border | `#2a2d3a` |
+| Glow | `rgba(57,255,20,0.4)` |
+| Glow strong | `rgba(57,255,20,0.6)` |
+| Font | `Segoe UI, system-ui, sans-serif` |
+
+---
+
+## API Assumptions
+- `GET /api/employees` → `{ employees: [...] }`
+- `POST /api/employees` → body: `{ name, daysPerWeek, dailyPay, assignedDays }`
+- `PUT /api/employees/:id` → same body
+- `DELETE /api/employees/:id` → 200 on success
+- Employee shape: `{ id, name, daysPerWeek, dailyPay, assignedDays: ['mon','wed','fri'] }`
+
+## Notes
+- Employee colors are deterministic by name (same name = same color across both pages)
+- The Weekly Schedule grid on index.html shows per-employee rows, one row per employee with all 7 day columns
+- The employee modal on index.html and employees.html are visually and functionally identical
+- All modals close on backdrop click (same pattern as existing expense/client modals)

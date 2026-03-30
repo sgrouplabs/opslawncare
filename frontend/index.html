@@ -137,6 +137,12 @@
       </div>
       <div class="flex items-center gap-4 text-sm">
         <span id="clock" class="text-gray-400 hidden sm:block"></span>
+        <a href="/" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">Dashboard</span>
+        </a>
+        <a href="/employees.html" id="nav-employees" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-users-gear"></i> <span class="hidden sm:inline">Employees</span>
+        </a>
         <a href="/clients.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
           <i class="fa-solid fa-users"></i> <span class="hidden sm:inline">Clients</span>
         </a>
@@ -207,6 +213,21 @@
             <i class="fa-solid fa-cloud-sun section-icon"></i> 7-Day Forecast
           </h2>
           <div id="weather-grid" class="grid grid-cols-7 gap-2 text-center">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Weekly Schedule -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold section-title flex items-center gap-2">
+              <i class="fa-solid fa-calendar-week section-icon"></i> Weekly Schedule
+            </h2>
+            <button onclick="openEmployeeModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md">
+              <i class="fa-solid fa-plus"></i> Add Employee
+            </button>
+          </div>
+          <div id="weekly-schedule" class="grid grid-cols-7 gap-1.5 text-center">
             <!-- Filled by JS -->
           </div>
         </div>
@@ -432,6 +453,75 @@
 
         <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
           <i class="fa-solid fa-check"></i> Add All Clients
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Employee Modal (Add/Edit) -->
+  <div id="employee-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
+      <button onclick="closeEmployeeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-users-gear text-neon" id="emp-modal-icon"></i> <span id="emp-modal-title">Add Employee</span>
+      </h3>
+      <form id="employee-form" onsubmit="submitEmployee(event)" class="space-y-4">
+        <input type="hidden" name="employee_id" id="emp-id">
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Name</label>
+          <input type="text" name="name" id="emp-name" required placeholder="e.g. Bentley"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Days/Week</label>
+            <input type="number" name="daysPerWeek" id="emp-days" min="1" max="7" required placeholder="5"
+              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Daily Pay ($)</label>
+            <input type="number" name="dailyPay" id="emp-pay" step="0.01" min="0" required placeholder="150.00"
+              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Assigned Days</label>
+          <div class="grid grid-cols-7 gap-2 mt-2">
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="mon" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">M</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="tue" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">T</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="wed" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">W</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="thu" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">T</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="fri" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">F</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="sat" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">S</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="assignedDays" value="sun" class="sr-only peer">
+              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">S</span>
+            </label>
+          </div>
+        </div>
+        <div id="emp-error" class="text-red-400 text-sm hidden"></div>
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> <span id="emp-submit-btn">Add Employee</span>
         </button>
       </form>
     </div>
@@ -945,11 +1035,164 @@
     document.getElementById('add-client-modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeAddClientModal();
     });
+    document.getElementById('employee-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeEmployeeModal();
+    });
+
+    // ── Employee Schedule Helpers ─────────────────────────────────────────────
+    const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    const EMP_COLORS = {
+      Bentley: { bg: 'bg-blue-900/40', border: 'border-blue-600', text: 'text-blue-300' },
+      Kevin: { bg: 'bg-purple-900/40', border: 'border-purple-600', text: 'text-purple-300' },
+      'Mr. Lee': { bg: 'bg-orange-900/40', border: 'border-orange-600', text: 'text-orange-300' },
+    };
+    const COLOR_NAMES = Object.keys(EMP_COLORS);
+
+    function getEmpColor(name) {
+      const idx = COLOR_NAMES.indexOf(name);
+      if (idx >= 0) return EMP_COLORS[COLOR_NAMES[idx % COLOR_NAMES.length]];
+      // Cycle through fallback colors
+      const fallbacks = [
+        { bg: 'bg-cyan-900/40', border: 'border-cyan-600', text: 'text-cyan-300' },
+        { bg: 'bg-pink-900/40', border: 'border-pink-600', text: 'text-pink-300' },
+        { bg: 'bg-yellow-900/40', border: 'border-yellow-600', text: 'text-yellow-300' },
+        { bg: 'bg-red-900/40', border: 'border-red-600', text: 'text-red-300' },
+      ];
+      return fallbacks[(idx === -1 ? COLOR_NAMES.length : idx) % fallbacks.length];
+    }
+
+    function loadEmployees() {
+      fetch(API + '/employees')
+        .then(r => r.ok ? r.json() : Promise.reject(r))
+        .then(data => {
+          window.employees = data.employees || [];
+          renderWeeklySchedule(window.employees);
+        })
+        .catch(err => console.error('[employees] load error:', err));
+    }
+
+    function renderWeeklySchedule(employees) {
+      const grid = document.getElementById('weekly-schedule');
+      if (!grid) return;
+      const empArr = Array.isArray(employees) ? employees : (employees || []);
+
+      // Header row: day labels
+      let html = DAY_LABELS.map(d => `
+        <div class="text-center">
+          <span class="text-xs font-semibold text-gray-500 uppercase">${d}</span>
+        </div>
+      `).join('');
+
+      // Data rows — one row per employee
+      empArr.forEach(emp => {
+        const color = getEmpColor(emp.name);
+        html += `<div class="col-span-7 flex flex-wrap gap-1 py-1 border-t border-[#2a2d3a]/50"></div>`;
+        html += `<div class="col-span-7 flex flex-wrap gap-1">`;
+        DAY_KEYS.forEach(day => {
+          const isScheduled = Array.isArray(emp.assignedDays) && emp.assignedDays.includes(day);
+          const weeklyCost = ((emp.daysPerWeek || 0) * (emp.dailyPay || 0)).toFixed(0);
+          if (isScheduled) {
+            html += `
+              <div class="flex items-center gap-1 px-2 py-1 rounded-lg ${color.bg} border ${color.border} text-xs">
+                <span class="${color.text} font-medium">${emp.name}</span>
+                <span class="text-gray-500">·</span>
+                <span class="text-gray-400">$${Number(emp.dailyPay || 0).toFixed(0)}/d</span>
+              </div>`;
+          } else {
+            html += `<div class="px-2 py-1 text-xs text-gray-700">—</div>`;
+          }
+        });
+        html += `</div>`;
+      });
+
+      if (!empArr.length) {
+        html += `<div class="col-span-7 text-center py-6 text-gray-500 text-sm">No employees scheduled yet.</div>`;
+      }
+
+      grid.innerHTML = html;
+    }
+
+    function openEmployeeModal(employee) {
+      document.getElementById('employee-modal').classList.add('active');
+      document.getElementById('emp-error').classList.add('hidden');
+      const form = document.getElementById('employee-form');
+      form.reset();
+
+      // Reset day checkboxes
+      form.querySelectorAll('[name="assignedDays"]').forEach(cb => cb.checked = false);
+
+      if (employee) {
+        // Edit mode
+        document.getElementById('emp-modal-title').textContent = 'Edit Employee';
+        document.getElementById('emp-submit-btn').textContent = 'Save Changes';
+        document.getElementById('emp-modal-icon').className = 'fa-solid fa-user-pen text-neon';
+        document.getElementById('emp-id').value = employee.id || '';
+        document.getElementById('emp-name').value = employee.name || '';
+        document.getElementById('emp-days').value = employee.daysPerWeek || '';
+        document.getElementById('emp-pay').value = employee.dailyPay || '';
+        if (Array.isArray(employee.assignedDays)) {
+          employee.assignedDays.forEach(day => {
+            const cb = form.querySelector(`[name="assignedDays"][value="${day}"]`);
+            if (cb) cb.checked = true;
+          });
+        }
+      } else {
+        // Add mode
+        document.getElementById('emp-modal-title').textContent = 'Add Employee';
+        document.getElementById('emp-submit-btn').textContent = 'Add Employee';
+        document.getElementById('emp-modal-icon').className = 'fa-solid fa-users-gear text-neon';
+        document.getElementById('emp-id').value = '';
+      }
+    }
+
+    function closeEmployeeModal() {
+      document.getElementById('employee-modal').classList.remove('active');
+    }
+
+    async function submitEmployee(e) {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const assignedDays = Array.from(form.querySelectorAll('[name="assignedDays"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        name: fd.get('name'),
+        daysPerWeek: parseInt(fd.get('daysPerWeek')) || 0,
+        dailyPay: parseFloat(fd.get('dailyPay')) || 0,
+        assignedDays,
+      };
+
+      const id = document.getElementById('emp-id').value;
+      const errorEl = document.getElementById('emp-error');
+      errorEl.classList.add('hidden');
+
+      try {
+        const url = id ? API + '/employees/' + id : API + '/employees';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to save employee');
+        }
+        closeEmployeeModal();
+        loadEmployees();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
 
     // ── Boot ───────────────────────────────────────────────────────────────────
     loadDashboard();
     loadClients();
     loadProfitMargins();
+    loadEmployees();
   </script>
 </body>
 </html>
