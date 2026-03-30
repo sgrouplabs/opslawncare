@@ -1,6 +1,4 @@
 // ─── Mode Selection ───────────────────────────────────────────────────────────
-// Use mock data when DATA_MODE=mock or GOOGLE_SHEETS_CREDENTIALS is not set.
-// Use live data when DATA_MODE=live and credentials are present.
 
 const DATA_MODE = process.env.DATA_MODE || (process.env.GOOGLE_SHEETS_CREDENTIALS ? 'live' : 'mock');
 
@@ -24,10 +22,10 @@ const auth = new google.auth.JWT(
   ['https://www.googleapis.com/auth/spreadsheets']
 );
 
-const sheets = google.sheets({ version: 'v4', auth });
-const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+const sheets           = google.sheets({ version: 'v4', auth });
+const SPREADSHEET_ID   = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Low-level sheet helpers ─────────────────────────────────────────────────
 
 async function getSheetValues(range) {
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range });
@@ -43,73 +41,72 @@ async function appendRow(range, values) {
   });
 }
 
-async function updateRow(range, values) {
+// Finds the sheet row number (1-indexed) where col A equals `id`.
+// Returns null if not found.
+async function findRowById(range, id) {
+  const rows = await getSheetValues(range);
+  for (let i = 1; i < rows.length; i++) {          // skip header row 0
+    if (rows[i][0] === id) return i + 1;             // +1 → sheet row number
+  }
+  return null;
+}
+
+async function deleteRow(rangePrefix, rowNumber, colCount) {
+  // Clear the row by writing empty values to it
+  const emptyRow = Array(colCount).fill('');
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range,
+    range: `${rangePrefix}${rowNumber}:${String.fromCharCode(64 + colCount)}${rowNumber}`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [values] },
+    resource: { values: [emptyRow] },
   });
 }
 
-// Converts sheet rows into structured client objects.
-// Column indices are explicitly mapped by ordinal position (not by header name indexOf)
-// to prevent silent corruption when extra columns (e.g. Notes) exist in the sheet.
-// Column order (must match sheet Row 1 exactly):
-//   A = ID, B = Client Name, C = Address, D = Price per Cut, E = Total Cuts, F = Mileage Roundtrip
+// ─── Row parsers — ordinal column mapping (A=0, B=1 …) ─────────────────────
+// Guards against malformed/empty rows and extra columns.
+
 function parseClients(rows) {
   if (!rows || rows.length < 2) return [];
-  const [, ...dataRows] = rows;
-  return dataRows
-    .filter(row => row && row.length >= 6)   // guard: skip malformed/empty rows
-    .map(row => ({
-      id:                 row[0] || uuidv4(),
-      name:               row[1] || '',
-      address:            row[2] || '',
-      pricePerCut:        parseFloat(row[3]) || 0,
-      totalCuts:          parseInt(row[4]) || 0,
-      mileageRoundtrip:   parseFloat(row[5]) || 0,
-    }));
+  return rows.slice(1).filter(r => r && r.length >= 6).map(r => ({
+    id:               r[0] || uuidv4(),
+    name:            r[1] || '',
+    address:         r[2] || '',
+    pricePerCut:     parseFloat(r[3]) || 0,
+    totalCuts:       parseInt(r[4]) || 0,
+    mileageRoundtrip: parseFloat(r[5]) || 0,
+  }));
 }
 
-// Expenses columns by ordinal position (A=0, B=1, ...):
-//   0=ID, 1=Category, 2=Amount, 3=Date, 4=Description
 function parseExpenses(rows) {
   if (!rows || rows.length < 2) return [];
-  const [, ...dataRows] = rows;
-  return dataRows
-    .filter(row => row && row.length >= 5)
-    .map(row => ({
-      id:          row[0] || uuidv4(),
-      category:    row[1] || '',
-      amount:      parseFloat(row[2]) || 0,
-      date:        row[3] || '',
-      description: row[4] || '',
-    }));
+  return rows.slice(1).filter(r => r && r.length >= 5).map(r => ({
+    id:          r[0] || uuidv4(),
+    category:    r[1] || '',
+    amount:     parseFloat(r[2]) || 0,
+    date:        r[3] || '',
+    description: r[4] || '',
+  }));
 }
 
-// Employees columns by ordinal position (A=0, B=1, ...):
-//   0=ID, 1=Name, 2=Days Per Week, 3=Daily Pay, 4=Assigned Days (comma-separated)
+// Employees — sheet columns: A=ID, B=Name, C=Days Per Week, D=Daily Pay, E=Assigned Days
 function parseEmployees(rows) {
   if (!rows || rows.length < 2) return [];
-  const [, ...dataRows] = rows;
-  return dataRows
-    .filter(row => row && row.length >= 5)
-    .map(row => ({
-      id:           row[0] || uuidv4(),
-      name:         row[1] || '',
-      daysPerWeek:  parseInt(row[2]) || 0,
-      dailyPay:     parseFloat(row[3]) || 0,
-      assignedDays: row[4] ? row[4].split(',').map(d => d.trim()) : [],
-    }));
+  return rows.slice(1).filter(r => r && r.length >= 5).map(r => ({
+    id:          r[0] || uuidv4(),
+    name:        r[1] || '',
+    daysPerWeek: parseInt(r[2]) || 0,
+    dailyPay:    parseFloat(r[3]) || 0,
+    // Assigned Days stored as comma-separated string, e.g. "Monday,Wednesday,Friday"
+    assignedDays: r[4]
+      ? r[4].split(',').map(d => d.trim().toLowerCase())
+      : [],
+  }));
 }
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 async function getClients() {
-  // Read 7 columns (A-G) to match what addClients writes (ID, Name, Address, Price, Cuts, Mileage, Notes)
-  const rows = await getSheetValues('Clients!A2:G');
-  return parseClients(rows);
+  return parseClients(await getSheetValues('Clients!A2:G'));
 }
 
 async function getClientById(id) {
@@ -117,51 +114,75 @@ async function getClientById(id) {
   return clients.find(c => c.id === id) || null;
 }
 
-// ─── Expenses ─────────────────────────────────────────────────────────────────
-
-async function getExpenses() {
-  const rows = await getSheetValues('Expenses!A2:E');
-  return parseExpenses(rows);
-}
-
-async function addExpense({ category, amount, date, description }) {
-  const id = uuidv4();
-  await appendRow('Expenses!A2:E', [id, category, amount, date, description]);
-  return { id, category, amount, date, description };
-}
-
 async function addClients(clientsArray) {
-  const rows = clientsArray.map(c => {
-    const id = uuidv4();
-    return [id, c.name, c.address, c.pricePerCut, c.totalCuts, c.mileageRoundtrip, c.notes || ''];
-  });
+  const rows = clientsArray.map(c => [
+    uuidv4(), c.name, c.address, c.pricePerCut, c.totalCuts, c.mileageRoundtrip, c.notes || ''
+  ]);
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: 'Clients!A2:G',
     valueInputOption: 'USER_ENTERED',
     resource: { values: rows },
   });
-  return clientsArray.map((c, i) => ({ id: uuidv4(), ...c }));
+  return clientsArray.map(c => ({ id: uuidv4(), ...c }));
 }
 
-// ─── Employees ─────────────────────────────────────────────────────────────────
+// ─── Expenses ─────────────────────────────────────────────────────────────────
+
+async function getExpenses() {
+  return parseExpenses(await getSheetValues('Expenses!A2:E'));
+}
+
+async function addExpense({ category, amount, date, description }) {
+  const id = uuidv4();
+  await appendRow('Expenses!A2:E', [id, category, amount, date, description || '']);
+  return { id, category, amount, date, description };
+}
+
+// ─── Employees ────────────────────────────────────────────────────────────────
 
 async function getEmployees() {
-  const rows = await getSheetValues('Employees!A2:E');
-  return parseEmployees(rows);
+  return parseEmployees(await getSheetValues('Employees!A2:E'));
 }
 
-async function upsertEmployee(data) {
-  const employees = await getEmployees();
-  const idx = employees.findIndex(e => e.id === data.id);
-  const assignedDaysStr = Array.isArray(data.assignedDays) ? data.assignedDays.join(',') : (data.assignedDays || '');
-  if (idx >= 0) {
-    const rowNum = idx + 2; // row 2 is first data row
-    await updateRow(`Employees!A${rowNum}:E`, [data.id, data.name, data.daysPerWeek, data.dailyPay, assignedDaysStr]);
-    return { ...employees[idx], ...data, assignedDays: data.assignedDays };
+// upsertEmployee — creates or updates a single employee row.
+// assignedDays: array of lowercase day names e.g. ['monday','wednesday','friday']
+async function upsertEmployee({ id, name, daysPerWeek, dailyPay, assignedDays }) {
+  const assignedDaysStr = Array.isArray(assignedDays)
+    ? assignedDays.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(',')
+    : (assignedDays || '');
+
+  if (id) {
+    // Update existing row — find its sheet row number by scanning column A
+    const rowNum = await findRowById('Employees!A:A', id);
+    if (rowNum) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Employees!A${rowNum}:E${rowNum}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [[id, name, daysPerWeek, dailyPay, assignedDaysStr]] },
+      });
+    }
+    return { id, name, daysPerWeek, dailyPay, assignedDays };
+  } else {
+    // Append new row — server generates the ID
+    const newId = 'emp-' + Date.now();
+    await appendRow('Employees!A2:E', [newId, name, daysPerWeek, dailyPay, assignedDaysStr]);
+    return { id: newId, name, daysPerWeek, dailyPay, assignedDays };
   }
-  await appendRow('Employees!A2:E', [data.id || 'emp-' + String(Date.now()), data.name, data.daysPerWeek, data.dailyPay, assignedDaysStr]);
-  return { id: data.id || 'emp-' + String(Date.now()), ...data };
+}
+
+// Delete employee by ID
+async function deleteEmployee(id) {
+  const rowNum = await findRowById('Employees!A:A', id);
+  if (!rowNum) throw new Error('Employee not found: ' + id);
+  // Clear the 5-column row (A–E)
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Employees!A${rowNum}:E${rowNum}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [['', '', '', '', '']] },
+  });
 }
 
 async function getTotalWeeklyLabor() {
@@ -172,38 +193,25 @@ async function getTotalWeeklyLabor() {
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 async function getDashboardSummary() {
-  const clients = await getClients();
-  const expenses = await getExpenses();
+  const [clients, expenses, laborCost] = await Promise.all([
+    getClients(),
+    getExpenses(),
+    getTotalWeeklyLabor(),
+  ]);
 
-  // Total expected revenue
-  const totalRevenue = clients.reduce((sum, c) => sum + (c.pricePerCut * c.totalCuts), 0);
-
-  // Total expenses
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-
-  // Total weekly labor cost
-  const totalLaborExpense = await getTotalWeeklyLabor();
-
-  // Net profit (revenue minus expenses AND labor)
-  const netProfit = totalRevenue - (totalExpenses + totalLaborExpense);
-
-  // Profit margin %
-  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
-
-  // Recent expenses (last 3)
-  const recentExpenses = expenses.slice(-3).reverse();
-
-  // Pending jobs this week (all clients have scheduled cuts)
-  const pendingThisWeek = clients.length;
+  const totalRevenue    = clients.reduce((s, c) => s + c.pricePerCut * c.totalCuts, 0);
+  const totalExpenses  = expenses.reduce((s, e) => s + e.amount, 0);
+  const netProfit      = totalRevenue - (totalExpenses + laborCost);
+  const profitMargin   = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
 
   return {
     totalRevenue,
     totalExpenses,
-    totalLaborExpense,
+    totalLaborExpense: laborCost,
     netProfit,
     profitMargin,
-    pendingThisWeek,
-    recentExpenses,
+    pendingThisWeek: clients.length,
+    recentExpenses:   expenses.slice(-3).reverse(),
     clientCount: clients.length,
   };
 }
@@ -211,20 +219,25 @@ async function getDashboardSummary() {
 // ─── Profit Margins per Client ───────────────────────────────────────────────
 
 async function getProfitMargins() {
-  const clients = await getClients();
-  const expenses = await getExpenses();
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const [clients, expenses, laborCost] = await Promise.all([
+    getClients(),
+    getExpenses(),
+    getTotalWeeklyLabor(),
+  ]);
+
+  const totalRevenue = clients.reduce((s, c) => s + c.pricePerCut * c.totalCuts, 0);
+  const totalCosts  = expenses.reduce((s, e) => s + e.amount, 0) + laborCost;
 
   return clients.map(c => {
     const revenue = c.pricePerCut * c.totalCuts;
-    const share = c.totalCuts > 0 ? (revenue / (clients.reduce((s, x) => s + x.pricePerCut * x.totalCuts, 0) || 1)) * totalExpenses : 0;
-    const net = revenue - share;
-    const margin = revenue > 0 ? ((net / revenue) * 100).toFixed(1) : 0;
+    const share   = totalRevenue > 0 ? (revenue / totalRevenue) * totalCosts : 0;
+    const net     = revenue - share;
+    const margin  = revenue > 0 ? ((net / revenue) * 100).toFixed(1) : 0;
     return {
-      name: c.name,
-      address: c.address,
+      name:              c.name,
+      address:           c.address,
       revenue,
-      expenseShare: share.toFixed(2),
+      expenseShare:     share.toFixed(2),
       net,
       margin,
       mileageRoundtrip: c.mileageRoundtrip,
@@ -232,7 +245,7 @@ async function getProfitMargins() {
   });
 }
 
-// ─── Route Optimization (sorted by mileage) ───────────────────────────────────
+// ─── Route Optimization ───────────────────────────────────────────────────────
 
 async function getOptimizedRoute() {
   const clients = await getClients();
@@ -240,6 +253,8 @@ async function getOptimizedRoute() {
     .map(c => ({ name: c.name, address: c.address, mileageRoundtrip: c.mileageRoundtrip }))
     .sort((a, b) => a.mileageRoundtrip - b.mileageRoundtrip);
 }
+
+// ─── Exports ────────────────────────────────────────────────────────────────
 
 module.exports = {
   getClients,
@@ -249,6 +264,7 @@ module.exports = {
   addClients,
   getEmployees,
   upsertEmployee,
+  deleteEmployee,
   getTotalWeeklyLabor,
   getDashboardSummary,
   getProfitMargins,

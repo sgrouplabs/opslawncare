@@ -218,6 +218,10 @@ module.exports = {
   },
   getEmployees: async () => getEmployees(),
   upsertEmployee: async (data) => upsertEmployee(data),
+  deleteEmployee: async (id) => {
+    const idx = EMPLOYEES.findIndex(e => e.id === id);
+    if (idx >= 0) EMPLOYEES.splice(idx, 1);
+  },
   getTotalWeeklyLabor: async () => getTotalWeeklyLabor(),
   getDashboardSummary,
   getProfitMargins,

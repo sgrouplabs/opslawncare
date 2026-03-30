@@ -1,6 +1,6 @@
 const express = require('express');
-const router = express.Router();
-const sheets = require('../services/sheets');
+const router  = express.Router();
+const sheets  = require('../services/sheets');
 const weather = require('../services/weather');
 
 // ─── Health ──────────────────────────────────────────────────────────────────
@@ -69,27 +69,49 @@ router.post('/expenses', async (req, res) => {
   }
 });
 
-// ─── Employees ───────────────────────────────────────────────────────────────
+// ─── Employees ────────────────────────────────────────────────────────────────
 
+// GET /api/employees — fetch all employees
 router.get('/employees', async (req, res) => {
   try {
     const employees = await sheets.getEmployees();
+    console.log('[API] GET /employees →', employees.length, 'rows');
     res.json({ employees });
   } catch (err) {
+    console.error('[API] GET /employees error:', err.message);
     res.status(500).json({ error: 'Failed to fetch employees', code: 'EMPLOYEES_FETCH_ERROR' });
   }
 });
 
+// POST /api/employees — create or update (upsert)
+// Body: { id?, name, daysPerWeek, dailyPay, assignedDays[] }
 router.post('/employees', async (req, res) => {
-  const { name, daysPerWeek, dailyPay, assignedDays } = req.body;
+  const { id, name, daysPerWeek, dailyPay, assignedDays } = req.body;
   if (!name || daysPerWeek == null || dailyPay == null || !Array.isArray(assignedDays)) {
-    return res.status(400).json({ error: 'Missing required fields: name, daysPerWeek, dailyPay, assignedDays[]', code: 'MISSING_FIELDS' });
+    return res.status(400).json({
+      error: 'Missing required fields: name, daysPerWeek, dailyPay, assignedDays[]',
+      code: 'MISSING_FIELDS',
+    });
   }
   try {
-    const employee = await sheets.upsertEmployee({ id: req.body.id, name, daysPerWeek, dailyPay, assignedDays });
+    const employee = await sheets.upsertEmployee({ id, name, daysPerWeek, dailyPay, assignedDays });
+    console.log('[API] POST /employees →', id ? 'updated' : 'created', employee.id);
     res.status(201).json({ employee });
   } catch (err) {
+    console.error('[API] POST /employees error:', err.message);
     res.status(500).json({ error: 'Failed to upsert employee', code: 'EMPLOYEE_UPSERT_ERROR' });
+  }
+});
+
+// DELETE /api/employees/:id — remove employee
+router.delete('/employees/:id', async (req, res) => {
+  try {
+    await sheets.deleteEmployee(req.params.id);
+    console.log('[API] DELETE /employees/' + req.params.id + ' → ok');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[API] DELETE /employees error:', err.message);
+    res.status(500).json({ error: 'Failed to delete employee', code: 'EMPLOYEE_DELETE_ERROR' });
   }
 });
 
