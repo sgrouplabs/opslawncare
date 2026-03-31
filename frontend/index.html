@@ -3,131 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ops Lawncare Dashboard</title>
+  <title>Ops Lawncare — Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    /* ── Custom Properties ──────────────────────────────────────────────── */
     :root {
-      --neon-green: #39FF14;
-      --neon-green-dim: #22c55e;
+      --neon: #39FF14;
+      --neon-glow: 0 0 8px rgba(57,255,20,0.4);
+      --neon-glow-strong: 0 0 16px rgba(57,255,20,0.65);
       --card-bg: #1a1d27;
       --card-border: #2a2d3a;
-      --glow-green: 0 0 8px rgba(57, 255, 20, 0.4);
-      --glow-green-strong: 0 0 16px rgba(57, 255, 20, 0.6);
     }
-
-    body {
-      background-color: #0f1117;
-      color: #f3f4f6;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-
-    /* ── Scrollbar ───────────────────────────────────────────────────────── */
+    body { background-color: #0f1117; color: #f3f4f6; font-family: 'Segoe UI', system-ui, sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #1a1d27; }
     ::-webkit-scrollbar-thumb { background: #39FF14; border-radius: 3px; }
-
-    /* ── Cards ───────────────────────────────────────────────────────────── */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 0.75rem;
       transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
-    .card:hover {
-      border-color: rgba(57, 255, 20, 0.3);
-      box-shadow: var(--glow-green);
-    }
-
-    /* ── Neon Text ───────────────────────────────────────────────────────── */
-    .text-neon { color: var(--neon-green); }
-    .text-neon-dim { color: var(--neon-green-dim); }
-
-    /* ── Sort Icons ───────────────────────────────────────────────────────── */
-    .sort-icon { transition: opacity 0.2s; }
-    th:hover .sort-icon { opacity: 0.6; }
-    .sort-active { color: var(--neon-green) !important; opacity: 1 !important; }
-
-    /* ── Modal ────────────────────────────────────────────────────────────── */
-    .modal { display: none; }
-    .modal.active { display: flex; }
-
-    /* ── Leaflet Dark Overrides ────────────────────────────────────────────── */
-    #client-map { border-radius: 0.75rem; }
-    .leaflet-popup-content-wrapper {
-      background: #1a1d27 !important;
-      border: 1px solid rgba(57,255,20,0.4) !important;
-      border-radius: 0.5rem !important;
-      box-shadow: 0 0 12px rgba(57,255,20,0.3) !important;
-      color: #f3f4f6 !important;
-    }
-    .leaflet-popup-tip {
-      background: #1a1d27 !important;
-    }
-    .leaflet-popup-content {
-      margin: 12px 16px !important;
-      font-family: 'Segoe UI', system-ui, sans-serif !important;
-    }
-    .leaflet-container { background: #12151e !important; }
-    .leaflet-control-zoom a {
-      background: #1a1d27 !important;
-      color: var(--neon-green) !important;
-      border-color: #2a2d3a !important;
-    }
-    .leaflet-control-zoom a:hover { background: #2a2d3a !important; }
-
-    /* ── Table Hover ──────────────────────────────────────────────────────── */
-    tbody tr:hover { background: rgba(57,255,20,0.05); }
-
-    /* ── Button Glow ──────────────────────────────────────────────────────── */
+    .card:hover { border-color: rgba(57,255,20,0.3); box-shadow: var(--neon-glow); }
+    .text-neon { color: var(--neon); }
+    .border-neon { border-color: var(--neon); }
+    .bg-neon\/10 { background-color: rgba(57,255,20,0.1); }
     .btn-neon {
-      background: var(--neon-green);
+      background: var(--neon);
       color: #000;
       font-weight: 700;
       transition: all 0.2s ease;
+      border-radius: 0.5rem;
     }
-    .btn-neon:hover {
-      background: #4ade80;
-      box-shadow: var(--glow-green-strong);
-    }
-
-    /* ── Active Nav Left Border ───────────────────────────────────────────── */
-    .nav-active { border-left: 3px solid var(--neon-green); }
-
-    /* ── KPI Card Glow ────────────────────────────────────────────────────── */
+    .btn-neon:hover { background: #4ade80; box-shadow: var(--neon-glow-strong); }
+    .modal { display: none; }
+    .modal.active { display: flex; }
+    tbody tr:hover { background: rgba(57,255,20,0.05); }
+    .badge-green { background: rgba(57,255,20,0.15); color: var(--neon); border: 1px solid rgba(57,255,20,0.3); }
     .kpi-card { border-left: 3px solid transparent; transition: all 0.3s ease; }
-    .kpi-card:hover { border-left-color: var(--neon-green); }
-
-    /* ── Green Badge ──────────────────────────────────────────────────────── */
-    .badge-green {
-      background: rgba(57,255,20,0.15);
-      color: var(--neon-green);
-      border: 1px solid rgba(57,255,20,0.3);
-    }
-
-    /* ── Calendar Today ───────────────────────────────────────────────────── */
-    .calendar-today {
-      border: 1px solid var(--neon-green) !important;
-      background: rgba(57,255,20,0.08) !important;
-    }
-
-    /* ── Expense Row ─────────────────────────────────────────────────────── */
-    .expense-row { border-bottom: 1px solid var(--card-border); }
-    .expense-row:last-child { border-bottom: none; }
-
-    /* ── Section Header Accent ───────────────────────────────────────────── */
-    .section-title { color: #d1d5db; }
-    .section-icon { color: var(--neon-green); }
+    .kpi-card:hover { border-left-color: var(--neon); }
+    #client-map { border-radius: 0.75rem; }
+    .leaflet-popup-content-wrapper { background: #1a1d27; color: #f3f4f6; border: 1px solid #2a2d3a; border-radius: 0.75rem; }
+    .leaflet-popup-tip { background: #1a1d27; }
   </style>
 </head>
 <body>
 
   <!-- Navbar -->
   <nav class="bg-[#1a1d27] border-b border-[#2a2d3a] shadow-lg sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3">
         <span class="text-2xl select-none" style="filter: drop-shadow(0 0 6px rgba(57,255,20,0.7));">🌿</span>
         <div>
@@ -135,155 +61,140 @@
           <p class="text-[10px] text-gray-500 uppercase tracking-widest -mt-0.5">Anderson, SC</p>
         </div>
       </div>
-      <div class="flex items-center gap-4 text-sm">
+      <div class="flex items-center gap-4 text-sm flex-wrap">
         <span id="clock" class="text-gray-400 hidden sm:block"></span>
-        <a href="/" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+        <a href="/" class="text-neon px-3 py-2 rounded-lg bg-green-900/20 border border-green-700/40 flex items-center gap-2">
           <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">Dashboard</span>
-        </a>
-        <a href="/employees.html" id="nav-employees" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
-          <i class="fa-solid fa-users-gear"></i> <span class="hidden sm:inline">Employees</span>
         </a>
         <a href="/clients.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
           <i class="fa-solid fa-users"></i> <span class="hidden sm:inline">Clients</span>
         </a>
-        <button onclick="openAddClientModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
-          <i class="fa-solid fa-user-plus"></i> <span class="hidden sm:inline">Add Client</span>
-        </button>
-        <button onclick="openExpenseModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
-          <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Add Expense</span>
-        </button>
+        <a href="/employees.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-users-gear"></i> <span class="hidden sm:inline">Employees</span>
+        </a>
       </div>
     </div>
   </nav>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-    <!-- Top KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      <!-- Today's Forecast -->
-      <div class="card kpi-card p-5 flex items-start gap-4">
-        <div class="text-3xl" id="today-icon">⏳</div>
-        <div>
-          <p class="text-gray-500 text-sm">Today's Forecast</p>
-          <p class="text-lg font-bold text-gray-100" id="today-condition">Loading...</p>
-          <p class="text-sm text-gray-400" id="today-temp">—</p>
-        </div>
-      </div>
-
-      <!-- Weekly Revenue -->
-      <div class="card kpi-card p-5">
-        <p class="text-gray-500 text-sm mb-1">Weekly Expected Revenue</p>
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div class="card kpi-card p-5 text-center">
+        <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Expected Revenue</p>
         <p class="text-2xl font-bold text-neon" id="kpi-revenue">—</p>
-        <p class="text-xs text-gray-500 mt-1">Based on scheduled cuts</p>
       </div>
-
-      <!-- Net Profit -->
-      <div class="card kpi-card p-5">
-        <p class="text-gray-500 text-sm mb-1">Net Profit Margin</p>
-        <p class="text-2xl font-bold text-purple-400" id="kpi-profit">—</p>
-        <p class="text-xs text-gray-500 mt-1">After expenses</p>
+      <div class="card kpi-card p-5 text-center">
+        <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Net Profit</p>
+        <p class="text-2xl font-bold text-blue-400" id="kpi-profit">—</p>
       </div>
-
-      <!-- Pending Route -->
-      <div class="card kpi-card p-5">
-        <p class="text-gray-500 text-sm mb-1">Pending Route</p>
-        <p class="text-2xl font-bold text-orange-400" id="kpi-pending">—</p>
-        <p class="text-xs text-gray-500 mt-1">Yards to cut this week</p>
+      <div class="card kpi-card p-5 text-center">
+        <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Profit Margin</p>
+        <p class="text-2xl font-bold text-purple-400" id="kpi-margin">—</p>
       </div>
-
+      <div class="card kpi-card p-5 text-center">
+        <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Labor Expense/wk</p>
+        <p class="text-2xl font-bold text-orange-400" id="kpi-labor">—</p>
+      </div>
+      <div class="card kpi-card p-5 text-center">
+        <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Active Clients</p>
+        <p class="text-2xl font-bold text-gray-100" id="kpi-clients">—</p>
+      </div>
     </div>
 
+    <!-- Main Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- Left column: Map + Weather + Calendar + Expenses -->
+      <!-- Left Column -->
       <div class="space-y-6">
 
-        <!-- Client Map -->
-        <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot section-icon"></i> Client Map
-          </h2>
-          <div id="client-map" class="w-full rounded-xl overflow-hidden" style="height: 280px; border: 1px solid #2a2d3a;"></div>
-        </div>
-
-        <!-- 7-Day Weather Forecast -->
-        <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-cloud-sun section-icon"></i> 7-Day Forecast
-          </h2>
-          <div id="weather-grid" class="grid grid-cols-7 gap-2 text-center">
-            <!-- Filled by JS -->
-          </div>
-        </div>
-
-        <!-- Weekly Schedule -->
+        <!-- Weather -->
         <div class="card p-5">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold section-title flex items-center gap-2">
-              <i class="fa-solid fa-calendar-week section-icon"></i> Weekly Schedule
+            <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-cloud-sun text-neon"></i> 7-Day Forecast
             </h2>
-            <button onclick="openEmployeeModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md">
-              <i class="fa-solid fa-plus"></i> Add Employee
-            </button>
           </div>
-          <div id="weekly-schedule" class="grid grid-cols-7 gap-1.5 text-center">
-            <!-- Filled by JS -->
+          <div id="weather-grid" class="grid grid-cols-7 gap-1 text-center">
+            <div class="col-span-7 text-gray-500 text-sm py-4 text-center">Loading weather…</div>
           </div>
         </div>
 
-        <!-- Week Calendar -->
+        <!-- Weekly Schedule (FIXED) -->
         <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-calendar-days section-icon"></i> This Week
-          </h2>
-          <div id="calendar-grid" class="grid grid-cols-7 gap-2 text-center">
-            <!-- Filled by JS -->
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-calendar-week text-neon"></i> Weekly Schedule
+            </h2>
+            <button onclick="openEmployeeModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md">
+              <i class="fa-solid fa-user-plus"></i> Add
+            </button>
+          </div>
+          <!-- 7-day header -->
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <div class="text-center text-xs font-bold text-gray-500">Mon</div>
+            <div class="text-center text-xs font-bold text-gray-500">Tue</div>
+            <div class="text-center text-xs font-bold text-gray-500">Wed</div>
+            <div class="text-center text-xs font-bold text-gray-500">Thu</div>
+            <div class="text-center text-xs font-bold text-gray-500">Fri</div>
+            <div class="text-center text-xs font-bold text-gray-500">Sat</div>
+            <div class="text-center text-xs font-bold text-gray-500">Sun</div>
+          </div>
+          <!-- Schedule rows injected here by renderSchedule() -->
+          <div id="schedule-body">
+            <div class="text-center text-gray-600 text-xs py-6">Loading schedule…</div>
           </div>
         </div>
 
         <!-- Recent Expenses -->
         <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-receipt section-icon"></i> Recent Expenses
-          </h2>
-          <div id="recent-expenses" class="space-y-1">
-            <p class="text-gray-500 text-sm text-center py-4">No expenses yet.</p>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-red-400"></i> Recent Expenses
+            </h2>
+            <button onclick="openExpenseModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md">
+              <i class="fa-solid fa-plus"></i> Add
+            </button>
+          </div>
+          <div id="recent-expenses" class="space-y-2">
+            <p class="text-gray-500 text-sm text-center py-4">No expenses recorded.</p>
           </div>
         </div>
 
       </div>
 
-      <!-- Right column: Client Route Table + Profit Margins + Financial Summary -->
+      <!-- Right Column -->
       <div class="lg:col-span-2 space-y-6">
+
+        <!-- Client Map -->
+        <div class="card p-5">
+          <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-map-location-dot text-neon"></i> Client Map
+          </h2>
+          <div id="client-map" class="w-full h-64 border border-[#2a2d3a]"></div>
+        </div>
 
         <!-- Client Route Table -->
         <div class="card p-5">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold section-title flex items-center gap-2">
-              <i class="fa-solid fa-route section-icon"></i> Client Route
+            <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
+              <i class="fa-solid fa-route text-orange-400"></i> Client Route
             </h2>
-            <span class="text-xs text-gray-500 badge-green px-2 py-0.5 rounded-full">Sorted by mileage</span>
+            <span class="text-xs text-gray-500">Sorted by mileage</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
-              <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
+              <thead class="bg-[#12151e] text-gray-500 text-xs uppercase">
                 <tr>
                   <th class="px-4 py-3 text-gray-400">Client</th>
                   <th class="px-4 py-3 text-gray-400">Address</th>
-                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('price')">
-                    Price/Cut <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
-                  </th>
-                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('total')">
-                    Total Cuts <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
-                  </th>
-                  <th class="px-4 py-3 text-gray-400" onclick="sortTable('mileage')">
-                    Mileage <i class="fa-solid fa-sort sort-icon text-gray-500 ml-1"></i>
-                  </th>
+                  <th class="px-4 py-3 text-gray-400">Price/Cut</th>
+                  <th class="px-4 py-3 text-gray-400">Cuts</th>
+                  <th class="px-4 py-3 text-gray-400">Mileage</th>
                 </tr>
               </thead>
               <tbody id="client-table" class="divide-y divide-[#2a2d3a]">
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -291,12 +202,12 @@
 
         <!-- Profit Margins -->
         <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-chart-pie section-icon"></i> Profit Margins by Client
+          <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-chart-pie text-purple-400"></i> Profit Margins
           </h2>
-          <div id="profit-table" class="overflow-x-auto">
+          <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
-              <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
+              <thead class="bg-[#12151e] text-gray-500 text-xs uppercase">
                 <tr>
                   <th class="px-4 py-3 text-gray-400">Client</th>
                   <th class="px-4 py-3 text-gray-400">Revenue</th>
@@ -305,8 +216,8 @@
                   <th class="px-4 py-3 text-gray-400">Margin</th>
                 </tr>
               </thead>
-              <tbody id="profit-body" class="divide-y divide-[#2a2d3a]">
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+              <tbody id="profit-table" class="divide-y divide-[#2a2d3a]">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -314,25 +225,25 @@
 
         <!-- Financial Summary -->
         <div class="card p-5">
-          <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-table-columns section-icon"></i> Financial Summary
+          <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-table-columns text-indigo-400"></i> Financial Summary
           </h2>
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-            <div class="bg-[#0f1f0f] rounded-lg p-4 border border-green-900/50">
-              <p class="text-xs text-green-500 uppercase font-semibold">Total Revenue</p>
-              <p class="text-xl font-bold text-neon" id="fin-revenue">—</p>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-center">
+            <div class="bg-green-900/20 border border-green-800/30 rounded-xl p-4">
+              <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Revenue</p>
+              <p class="text-lg font-bold text-green-400" id="fin-revenue">—</p>
             </div>
-            <div class="bg-[#1f0f0f] rounded-lg p-4 border border-red-900/50">
-              <p class="text-xs text-red-500 uppercase font-semibold">Total Expenses</p>
-              <p class="text-xl font-bold text-red-400" id="fin-expenses">—</p>
+            <div class="bg-red-900/20 border border-red-800/30 rounded-xl p-4">
+              <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Expenses</p>
+              <p class="text-lg font-bold text-red-400" id="fin-expenses">—</p>
             </div>
-            <div class="bg-[#0f0f1f] rounded-lg p-4 border border-purple-900/50">
-              <p class="text-xs text-purple-400 uppercase font-semibold">Net Profit</p>
-              <p class="text-xl font-bold text-purple-400" id="fin-net">—</p>
+            <div class="bg-orange-900/20 border border-orange-800/30 rounded-xl p-4">
+              <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Labor</p>
+              <p class="text-lg font-bold text-orange-400" id="fin-labor">—</p>
             </div>
-            <div class="bg-[#12151e] rounded-lg p-4 border border-[#2a2d3a]">
-              <p class="text-xs text-gray-400 uppercase font-semibold">Profit Margin</p>
-              <p class="text-xl font-bold text-gray-100" id="fin-margin">—</p>
+            <div class="bg-blue-900/20 border border-blue-800/30 rounded-xl p-4">
+              <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Net Profit</p>
+              <p class="text-lg font-bold text-blue-400" id="fin-net">—</p>
             </div>
           </div>
         </div>
@@ -344,40 +255,35 @@
   <!-- Add Expense Modal -->
   <div id="expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
     <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
-      <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+      <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg">
         <i class="fa-solid fa-xmark"></i>
       </button>
       <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-receipt text-neon"></i> Add Expense
+        <i class="fa-solid fa-receipt text-red-400"></i> Add Expense
       </h3>
       <form id="expense-form" onsubmit="submitExpense(event)" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Category</label>
-          <select name="category" required class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+          <select name="category" required class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
             <option value="">Select category</option>
-            <option>Fuel</option>
-            <option>Equipment</option>
-            <option>Labor</option>
-            <option>Maintenance</option>
-            <option>Insurance</option>
-            <option>Supplies</option>
-            <option>Other</option>
+            <option>Fuel</option><option>Equipment</option><option>Labor</option>
+            <option>Maintenance</option><option>Insurance</option><option>Supplies</option><option>Other</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Amount ($)</label>
           <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00"
-            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Date</label>
           <input type="date" name="date" required
-            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
-          <input type="text" name="description" placeholder="Optional note..."
-            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+          <input type="text" name="description" placeholder="Optional note…"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
         </div>
         <div id="expense-error" class="text-red-400 text-sm hidden"></div>
         <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
@@ -387,468 +293,409 @@
     </div>
   </div>
 
-  <!-- Add Client Modal -->
-  <div id="add-client-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
-    <div class="card rounded-2xl w-full max-w-lg mx-4 p-6 relative border border-[#2a2d3a] max-h-[90vh] overflow-y-auto">
-      <button onclick="closeAddClientModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-user-plus text-neon"></i> Add Client(s)
-      </h3>
-      <form id="add-client-form" onsubmit="submitClients(event)" class="space-y-4">
-        <div id="client-form-rows">
-          <!-- Initial client row -->
-          <div class="client-form-row bg-[#12151e] rounded-xl p-4 border border-[#2a2d3a] mb-3">
-            <div class="flex justify-between items-center mb-3">
-              <span class="text-xs font-semibold text-neon uppercase tracking-wide client-row-label">Client #1</span>
-              <button type="button" onclick="removeClientRow(this)" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition hidden remove-btn">
-                <i class="fa-solid fa-trash-can mr-1"></i>Remove
-              </button>
-            </div>
-            <div class="grid grid-cols-1 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Client Name</label>
-                <input type="text" name="client_name" required placeholder="e.g. John Smith"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Address</label>
-                <input type="text" name="client_address" required placeholder="123 Main St, Anderson, SC"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1">Price Per Cut ($)</label>
-                  <input type="number" name="price_per_cut" step="0.01" min="0" required placeholder="0.00"
-                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
-                  <input type="number" name="total_cuts" min="0" required placeholder="0"
-                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
-                <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
-                <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Add Another Client Button -->
-        <button type="button" onclick="addAnotherClientRow()" class="w-full border-2 border-dashed border-[#2a2d3a] hover:border-green-600 text-gray-400 hover:text-green-400 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-plus"></i> Add Another Client
-        </button>
-
-        <div id="add-client-error" class="text-red-400 text-sm hidden"></div>
-        <div id="add-client-success" class="text-green-400 text-sm hidden"></div>
-
-        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-          <i class="fa-solid fa-check"></i> Add All Clients
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Employee Modal (Add/Edit) -->
+  <!-- Add Employee Modal -->
   <div id="employee-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
     <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
-      <button onclick="closeEmployeeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+      <button onclick="closeEmployeeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg">
         <i class="fa-solid fa-xmark"></i>
       </button>
       <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-users-gear text-neon" id="emp-modal-icon"></i> <span id="emp-modal-title">Add Employee</span>
+        <i class="fa-solid fa-users-gear text-neon"></i> Add Employee
       </h3>
-      <form id="employee-form" onsubmit="submitEmployee(event)" class="space-y-4">
-        <input type="hidden" name="employee_id" id="emp-id">
+      <form id="emp-form" onsubmit="submitEmployee(event)" class="space-y-4">
+        <input type="hidden" name="id" id="emp-id">
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Name</label>
           <input type="text" name="name" id="emp-name" required placeholder="e.g. Bentley"
-            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Days/Week</label>
             <input type="number" name="daysPerWeek" id="emp-days" min="1" max="7" required placeholder="5"
-              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Daily Pay ($)</label>
             <input type="number" name="dailyPay" id="emp-pay" step="0.01" min="0" required placeholder="150.00"
-              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+              class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Assigned Days</label>
-          <div class="grid grid-cols-7 gap-2 mt-2">
+          <label class="block text-sm font-medium text-gray-400 mb-2">Assigned Days</label>
+          <div class="grid grid-cols-7 gap-2">
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="mon" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">M</span>
+              <input type="checkbox" name="assignedDays" value="monday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">M</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="tue" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">T</span>
+              <input type="checkbox" name="assignedDays" value="tuesday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">T</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="wed" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">W</span>
+              <input type="checkbox" name="assignedDays" value="wednesday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">W</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="thu" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">T</span>
+              <input type="checkbox" name="assignedDays" value="thursday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">T</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="fri" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">F</span>
+              <input type="checkbox" name="assignedDays" value="friday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">F</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="sat" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">S</span>
+              <input type="checkbox" name="assignedDays" value="saturday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">S</span>
             </label>
             <label class="flex flex-col items-center gap-1 cursor-pointer">
-              <input type="checkbox" name="assignedDays" value="sun" class="sr-only peer">
-              <span class="w-10 h-10 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 transition hover:border-[#3a3d4a]">S</span>
+              <input type="checkbox" name="assignedDays" value="sunday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">S</span>
             </label>
           </div>
         </div>
         <div id="emp-error" class="text-red-400 text-sm hidden"></div>
         <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-          <i class="fa-solid fa-check"></i> <span id="emp-submit-btn">Add Employee</span>
+          <i class="fa-solid fa-check"></i> Add Employee
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
   <script>
     const API = window.location.origin + '/api';
 
-    // ── Nominatim Geocoding ─────────────────────────────────────────────────
-    // Nominatim requires a User-Agent identifying your application.
-    // Results are cached in memory so repeat renders don't re-fetch.
-    const GEOCODE_CACHE = new Map();
-    const GEOCODE_BASE   = 'https://nominatim.openstreetmap.org/search?format=json&q=';
-    const GEOCODE_DELAY  = 1100; // ms between requests (Nominatim policy: max 1 req/s)
-    let   geocodeQueue   = [];
-    let   geocodeTimer   = null;
-
-    /**
-     * Geocode a single address string via Nominatim.
-     * Respects rate limits, caches results in GEOCODE_CACHE.
-     * Falls back to Anderson, SC center if geocoding fails.
-     */
-    async function geocodeAddress(address) {
-      if (!address) return null;
-      if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
-      return new Promise((resolve) => {
-        geocodeQueue.push({ address, resolve });
-        if (!geocodeTimer) processGeocodeQueue();
-      });
-    }
-
-    async function processGeocodeQueue() {
-      if (!geocodeQueue.length) { geocodeTimer = null; return; }
-      const { address, resolve } = geocodeQueue.shift();
-      try {
-        const url = GEOCODE_BASE + encodeURIComponent(address + ', Anderson, SC, USA');
-        const res = await fetch(url, {
-          headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncareDashboard/1.0' },
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const lat = data[0] ? parseFloat(data[0].lat) : null;
-        const lon = data[0] ? parseFloat(data[0].lon) : null;
-        GEOCODE_CACHE.set(address, lat && lon ? { lat, lon } : null);
-        resolve(GEOCODE_CACHE.get(address));
-      } catch (_) {
-        GEOCODE_CACHE.set(address, null);
-        resolve(null);
-      }
-      // Drain queue with delay
-      geocodeTimer = setTimeout(processGeocodeQueue, GEOCODE_DELAY);
-    }
-
-    // ── Leaflet Map ───────────────────────────────────────────────────────────
-    const map = L.map('client-map').setView([34.5034, -82.6501], 12);
-
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-
-    const neonIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:14px;height:14px;background:#39FF14;border-radius:50%;border:2px solid #0f1117;box-shadow:0 0 10px #39FF14,0 0 20px rgba(57,255,20,0.5);"></div>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-      popupAnchor: [0, -10],
-    });
-
-    let clientMarkers = [];
-
-    /**
-     * Fetch coordinates for all clients and plot neon-green markers.
-     * Re-fetches geocode cache as needed (cached addresses are instant).
-     */
-    async function plotClients(clients) {
-      clientMarkers.forEach(m => map.removeLayer(m));
-      clientMarkers = [];
-
-      if (!clients || !clients.length) return;
-
-      // Kick off all geocode requests (cached addresses resolve immediately)
-      const geoPromises = clients.map(c => geocodeAddress(c.address));
-
-      // Resolve all in parallel — queue serialises the actual HTTP calls
-      const geoResults = await Promise.all(geoPromises);
-
-      const markersWithCoords = [];
-      for (let i = 0; i < clients.length; i++) {
-        const coord = geoResults[i];
-        if (!coord) continue;  // geocode failed silently — skip marker
-
-        const c = clients[i];
-        const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon }).addTo(map);
-        marker.bindPopup(`
-          <div style="min-width:180px;">
-            <p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p>
-            <p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">
-              <i class="fa-solid fa-location-dot" style="color:#39FF14;margin-right:4px;"></i>${c.address}
-            </p>
-            <p style="color:#d1d5db;font-size:13px;">
-              <i class="fa-solid fa-dollar-sign" style="color:#39FF14;margin-right:4px;"></i>
-              <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts
-            </p>
-          </div>
-        `);
-        markersWithCoords.push(marker);
-      }
-
-      clientMarkers = markersWithCoords;
-
-      // Fit map to show all markers, or reset to Anderson if none resolved
-      if (markersWithCoords.length > 0) {
-        const group = L.featureGroup(markersWithCoords);
-        map.fitBounds(group.getBounds().pad(0.15));
-      } else {
-        map.setView([34.5034, -82.6501], 12);
-      }
-
-      console.log(`[map] ${markersWithCoords.length}/${clients.length} clients plotted`);
-    }
-
     // ── Clock ─────────────────────────────────────────────────────────────────
     function updateClock() {
-      const now = new Date();
-      document.getElementById('clock').textContent = now.toLocaleString('en-US', {
+      document.getElementById('clock').textContent = new Date().toLocaleString('en-US', {
         weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
     }
     setInterval(updateClock, 60000);
     updateClock();
 
-    // ── Number formatters ──────────────────────────────────────────────────────
-    const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
-    const pct = n => Number(n || 0).toFixed(1) + '%';
+    const usd   = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const pct   = n => Number(n || 0).toFixed(1) + '%';
 
-    // ── Dashboard Summary ──────────────────────────────────────────────────────
+    // ── Leaflet / Map ─────────────────────────────────────────────────────────
+
+    const GEOCODE_CACHE = new Map();
+    const GEOCODE_QUEUE  = [];
+    let   GEOCODE_TIMER  = null;
+
+    async function geocodeAddress(address) {
+      if (!address) return null;
+      if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
+      return new Promise(resolve => {
+        GEOCODE_QUEUE.push({ address, resolve });
+        if (!GEOCODE_TIMER) processGeocodeQueue();
+      });
+    }
+
+    async function processGeocodeQueue() {
+      if (!GEOCODE_QUEUE.length) { GEOCODE_TIMER = null; return; }
+      const { address, resolve } = GEOCODE_QUEUE.shift();
+      try {
+        const url   = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address + ', Anderson, SC, USA');
+        const res   = await fetch(url, { headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncare/1.0' }, signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data  = await res.json();
+        const lat   = data[0] ? parseFloat(data[0].lat) : null;
+        const lon   = data[0] ? parseFloat(data[0].lon) : null;
+        const coord = lat && lon ? { lat, lon } : null;
+        GEOCODE_CACHE.set(address, coord);
+        resolve(coord);
+      } catch (_) {
+        GEOCODE_CACHE.set(address, null);
+        resolve(null);
+      }
+      GEOCODE_TIMER = setTimeout(processGeocodeQueue, 1100);
+    }
+
+    const map = L.map('client-map').setView([34.5034, -82.6501], 12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map);
+
+    const neonIcon = L.divIcon({
+      className: '', iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -10],
+      html: '<div style="width:14px;height:14px;background:#39FF14;border-radius:50%;border:2px solid #0f1117;box-shadow:0 0 10px #39FF14,0 0 20px rgba(57,255,20,0.5);"></div>'
+    });
+
+    let clientMarkers = [];
+
+    async function plotClients(clients) {
+      clientMarkers.forEach(m => map.removeLayer(m));
+      clientMarkers = [];
+      if (!clients || !clients.length) return;
+      const coords = await Promise.all(clients.map(c => geocodeAddress(c.address)));
+      const pairs  = clients.map((c, i) => ({ c, coord: coords[i] })).filter(p => p.coord);
+      pairs.forEach(({ c, coord }) => {
+        const m = L.marker([coord.lat, coord.lon], { icon: neonIcon }).addTo(map);
+        m.bindPopup(`<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ${c.address}</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts</p></div>`);
+        clientMarkers.push(m);
+      });
+      if (pairs.length > 0) {
+        const g = L.featureGroup(pairs.map(p => p.marker || L.marker([0,0])));
+        // rebuild properly
+        const group = L.featureGroup(clientMarkers);
+        map.fitBounds(group.getBounds().pad(0.15));
+      } else {
+        map.setView([34.5034, -82.6501], 12);
+      }
+      console.log('[map] ' + clientMarkers.length + '/' + clients.length + ' clients plotted');
+    }
+
+    // ── Dashboard Load ──────────────────────────────────────────────────────────
+
     async function loadDashboard() {
       try {
-        const [summary, weatherData, clients] = await Promise.all([
+        const [summary, weatherData, clients, employees] = await Promise.all([
           fetch(API + '/dashboard/summary').then(r => r.json()),
           fetch(API + '/weather').then(r => r.json()),
           fetch(API + '/clients').then(r => r.json()),
+          fetch(API + '/employees').then(r => r.json()),
         ]);
 
-        // DEBUG: log raw API responses
         console.log('[DEBUG index] GET /dashboard/summary →', JSON.stringify(summary));
         console.log('[DEBUG index] GET /clients →', JSON.stringify(clients));
-        console.log('[DEBUG index] clientCount from API:', summary.clientCount, '| client array:', (clients.clients || []).length);
+        console.log('[DEBUG index] GET /employees →', JSON.stringify(employees));
 
         // KPIs
         document.getElementById('kpi-revenue').textContent = usd(summary.totalRevenue);
-        document.getElementById('kpi-profit').textContent = pct(summary.profitMargin);
-        document.getElementById('kpi-pending').textContent = summary.pendingThisWeek;
+        document.getElementById('kpi-profit').textContent  = usd(summary.netProfit);
+        document.getElementById('kpi-margin').textContent   = pct(summary.profitMargin);
+        document.getElementById('kpi-labor').textContent   = usd(summary.totalLaborExpense);
+        document.getElementById('kpi-clients').textContent = summary.clientCount || 0;
 
         // Financial summary
-        document.getElementById('fin-revenue').textContent = usd(summary.totalRevenue);
+        document.getElementById('fin-revenue').textContent  = usd(summary.totalRevenue);
         document.getElementById('fin-expenses').textContent = usd(summary.totalExpenses);
-        document.getElementById('fin-net').textContent = usd(summary.netProfit);
-        document.getElementById('fin-margin').textContent = pct(summary.profitMargin);
+        document.getElementById('fin-labor').textContent     = usd(summary.totalLaborExpense);
+        document.getElementById('fin-net').textContent      = usd(summary.netProfit);
 
         // Recent expenses
-        const container = document.getElementById('recent-expenses');
-        if (summary.recentExpenses && summary.recentExpenses.length > 0) {
-          container.innerHTML = summary.recentExpenses.map(e => `
-            <div class="expense-row flex items-center justify-between py-2.5">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-red-900/30 border border-red-800/40 flex items-center justify-center">
-                  <i class="fa-solid fa-receipt text-red-400 text-xs"></i>
-                </div>
-                <div>
-                  <p class="font-medium text-gray-100 text-sm">${e.category}</p>
-                  <p class="text-xs text-gray-500">${e.date} · ${e.description || '—'}</p>
-                </div>
+        const expContainer = document.getElementById('recent-expenses');
+        if (summary.recentExpenses && summary.recentExpenses.length) {
+          expContainer.innerHTML = summary.recentExpenses.map(e => `
+            <div class="flex items-center justify-between py-2 border-b border-[#2a2d3a]/50 last:border-0">
+              <div>
+                <p class="font-medium text-gray-200 text-sm">${e.category}</p>
+                <p class="text-xs text-gray-500">${e.date} · ${e.description || '—'}</p>
               </div>
-              <span class="text-red-400 font-semibold text-sm">-${usd(e.amount)}</span>
-            </div>
-          `).join('');
+              <span class="text-red-400 font-semibold text-sm">${usd(e.amount)}</span>
+            </div>`).join('');
         } else {
-          container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No expenses yet.</p>';
+          expContainer.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No expenses recorded.</p>';
         }
 
-        // Weather grid
-        renderWeatherGrid(weatherData.forecast);
-
-        // Calendar
-        renderCalendar(weatherData.forecast);
-
-        // Plot clients on map
-        if (clients.clients) {
-          plotClients(clients.clients);
-        }
+        // Weather
+        renderWeatherGrid(weatherData.forecast || []);
 
         // Clients table
-        renderClientsTable(clients.clients);
+        const clientList = clients.clients || [];
+        document.getElementById('client-table').innerHTML = clientList.length
+          ? clientList.map(c => `
+            <tr class="hover:bg-[#39FF14]/5 transition">
+              <td class="px-4 py-3 font-medium text-gray-100 text-sm">${c.name}</td>
+              <td class="px-4 py-3 text-gray-400 text-xs">${c.address}</td>
+              <td class="px-4 py-3 text-neon font-semibold text-sm">${usd(c.pricePerCut)}</td>
+              <td class="px-4 py-3 text-gray-300 text-sm">${c.totalCuts || 0}</td>
+              <td class="px-4 py-3 text-gray-400 text-sm">${c.mileageRoundtrip} mi</td>
+            </tr>`).join('')
+          : '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No clients found.</td></tr>';
+
+        // Profit margins
+        const margins = await fetch(API + '/dashboard/profit-margins').then(r => r.json()).catch(() => ({ margins: [] }));
+        document.getElementById('profit-table').innerHTML = (margins.margins || []).length
+          ? margins.margins.map(m => {
+            const mc = parseFloat(m.margin) || 0;
+            const cls = mc >= 50 ? 'text-green-400' : mc >= 25 ? 'text-yellow-400' : 'text-red-400';
+            return `<tr class="hover:bg-[#39FF14]/5 transition">
+              <td class="px-4 py-3 font-medium text-gray-100 text-sm">${m.name}</td>
+              <td class="px-4 py-3 text-gray-300 text-sm">${usd(m.revenue)}</td>
+              <td class="px-4 py-3 text-red-400 text-sm">${usd(m.expenseShare)}</td>
+              <td class="px-4 py-3 text-blue-400 font-semibold text-sm">${usd(m.net)}</td>
+              <td class="px-4 py-3 font-bold text-sm ${cls}">${pct(m.margin)}</td>
+            </tr>`;}).join('')
+          : '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data.</td></tr>';
+
+        // Map
+        plotClients(clientList);
+
+        // ── WEEKLY SCHEDULE — FIX: call renderSchedule with live data ──────────────────
+        window.empData = employees.employees || [];
+        renderSchedule(window.empData);
 
       } catch (err) {
-        console.error('Dashboard load error:', err);
+        console.error('[DEBUG index] loadDashboard error:', err);
       }
     }
 
-    // ── Weather Grid ───────────────────────────────────────────────────────────
+    // ── Weather Grid ─────────────────────────────────────────────────────────
+
     function renderWeatherGrid(forecast) {
       const grid = document.getElementById('weather-grid');
-      if (!forecast || !forecast.length) return;
-
-      // Today
-      const today = forecast[0];
-      document.getElementById('today-icon').textContent = today.icon;
-      document.getElementById('today-condition').textContent = today.condition;
-      document.getElementById('today-temp').textContent = `${Math.round(today.tempMin)}°–${Math.round(today.tempMax)}°C`;
-
-      // 7-day row
+      if (!forecast || !forecast.length) {
+        grid.innerHTML = '<div class="col-span-7 text-gray-500 text-sm py-4 text-center">Weather unavailable.</div>';
+        return;
+      }
+      // Today highlight
+      const todayIcon = document.getElementById('today-icon') || {};
+      if (document.getElementById('today-icon')) {
+        document.getElementById('today-icon').textContent = forecast[0].icon || '🌤️';
+      }
       grid.innerHTML = forecast.map(d => {
-        const dayName = new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' });
-        const isToday = d.date === forecast[0].date;
-        return `
-          <div class="flex flex-col items-center gap-1 p-2 rounded-lg transition ${isToday ? 'bg-green-900/20 border border-green-700/40' : 'hover:bg-[#2a2d3a]/50'}">
-            <span class="text-xs font-medium text-gray-400">${dayName}</span>
-            <span class="text-xl">${d.icon}</span>
-            <span class="text-xs font-semibold text-gray-100">${Math.round(d.tempMax)}°</span>
-            <span class="text-xs text-gray-500">${Math.round(d.tempMin)}°</span>
-          </div>
-        `;
+        const day = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+        return `<div class="flex flex-col items-center gap-1 p-2 rounded-lg ${d.date === forecast[0].date ? 'bg-green-900/20 ring-1 ring-green-700/40' : 'hover:bg-[#2a2d3a]/50'}">
+          <span class="text-xs font-medium text-gray-500">${day}</span>
+          <span class="text-xl">${d.icon || '🌤️'}</span>
+          <span class="text-xs font-semibold text-gray-100">${Math.round(d.tempMax)}°</span>
+          <span class="text-xs text-gray-500">${Math.round(d.tempMin)}°</span>
+        </div>`;
       }).join('');
     }
 
-    // ── Calendar ──────────────────────────────────────────────────────────────
-    function renderCalendar(forecast) {
-      const grid = document.getElementById('calendar-grid');
-      if (!forecast) return;
+    // ── WEEKLY SCHEDULE RENDERING ─────────────────────────────────────────────────
+    // FIX: Actually uses employee data instead of hardcoded dashes.
 
-      const today = new Date();
-      const dayOfWeek = (today.getDay() + 6) % 7;
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - dayOfWeek);
+    const DAY_COLS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    const DAY_HEADERS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-      grid.innerHTML = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
-        const dayData = forecast.find(f => f.date === dateStr);
-        const isToday = dateStr === today.toISOString().split('T')[0];
+    // Employee pill colors
+    const NAME_COLORS = {
+      Bentley:   { bg: 'bg-blue-900/50',   border: 'border-blue-600',   text: 'text-blue-300'   },
+      Kevin:    { bg: 'bg-purple-900/50', border: 'border-purple-600', text: 'text-purple-300' },
+      'Mr. Lee':{ bg: 'bg-orange-900/50', border: 'border-orange-600', text: 'text-orange-300' },
+    };
+    const FALLBACK_COLORS = [
+      { bg: 'bg-cyan-900/50',   border: 'border-cyan-600',   text: 'text-cyan-300'   },
+      { bg: 'bg-pink-900/50',   border: 'border-pink-600',   text: 'text-pink-300'   },
+      { bg: 'bg-yellow-900/50', border: 'border-yellow-600', text: 'text-yellow-300' },
+      { bg: 'bg-red-900/50',    border: 'border-red-600',    text: 'text-red-300'    },
+    ];
+    const COLOR_NAMES = Object.keys(NAME_COLORS);
 
-        return `
-          <div class="flex flex-col items-center gap-1 p-2 rounded-lg border ${isToday ? 'calendar-today' : 'border-[#2a2d3a] hover:border-[#3a3d4a]'}">
-            <span class="text-xs font-semibold ${isToday ? 'text-neon' : 'text-gray-500'}">${date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-            <span class="text-sm font-bold text-gray-100">${date.getDate()}</span>
-            ${dayData ? `<span class="text-lg">${dayData.icon}</span><span class="text-xs text-gray-400">${Math.round(dayData.tempMax)}°</span>` : '<span class="text-lg opacity-30">—</span>'}
-          </div>
-        `;
-      }).join('');
+    function getColor(name) {
+      return NAME_COLORS[name] || FALLBACK_COLORS[COLOR_NAMES.length % FALLBACK_COLORS.length];
     }
 
-    // ── Clients Table ───────────────────────────────────────────────────────────
-    let allClients = [];
-    let sortKey = 'mileage';
-    let sortAsc = true;
-
-    async function loadClients() {
-      const res = await fetch(API + '/clients');
-      const data = await res.json();
-      allClients = data.clients || [];
-      plotClients(allClients);
-      renderClientsTable(allClients);
+    /**
+     * Normalize assignedDays from whatever format it comes in (string or array).
+     * "Monday,Wednesday,Friday" or ['monday','wednesday','friday'] → lowercase-set
+     */
+    function parseAssignedDays(raw) {
+      if (!raw) return new Set();
+      if (Array.isArray(raw)) return new Set(raw.map(d => String(d).trim().toLowerCase()));
+      // Comma-separated string from Sheets
+      return new Set(raw.split(',').map(d => d.trim().toLowerCase()));
     }
 
-    function renderClientsTable(clients) {
-      const tbody = document.getElementById('client-table');
-      if (!clients || !clients.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No clients found.</td></tr>';
+    /**
+     * Renders the Weekly Schedule grid.
+     * Each employee gets one row of 7 cells; their name appears as a pill
+     * in each day column they are assigned to work.
+     */
+    function renderSchedule(employees) {
+      const body = document.getElementById('schedule-body');
+      const arr  = Array.isArray(employees) ? employees : [];
+
+      if (!arr.length) {
+        body.innerHTML = '<div class="text-center text-gray-600 text-xs py-6">No employees added yet. Click "Add" to get started.</div>';
         return;
       }
-      tbody.innerHTML = clients.map(c => `
-        <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
-          <td class="px-4 py-3 font-medium text-gray-100">${c.name}</td>
-          <td class="px-4 py-3 text-gray-400 text-xs">${c.address}</td>
-          <td class="px-4 py-3 text-neon font-semibold">${usd(c.pricePerCut)}</td>
-          <td class="px-4 py-3 text-gray-300">${c.totalCuts}</td>
-          <td class="px-4 py-3 text-gray-400">${c.mileageRoundtrip} mi</td>
-        </tr>
-      `).join('');
-    }
 
-    function sortTable(key) {
-      if (sortKey === key) sortAsc = !sortAsc;
-      else { sortKey = key; sortAsc = true; }
+      body.innerHTML = arr.map(emp => {
+        const days = parseAssignedDays(emp.assignedDays);
+        const { bg, border, text } = getColor(emp.name);
 
-      const sorted = [...allClients].sort((a, b) => {
-        if (key === 'mileage') return sortAsc ? a.mileageRoundtrip - b.mileageRoundtrip : b.mileageRoundtrip - a.mileageRoundtrip;
-        if (key === 'price') return sortAsc ? a.pricePerCut - b.pricePerCut : b.pricePerCut - a.pricePerCut;
-        if (key === 'total') return sortAsc ? a.totalCuts - b.totalCuts : b.totalCuts - a.totalCuts;
-        return 0;
-      });
-      renderClientsTable(sorted);
-    }
+        const cells = DAY_COLS.map(day => {
+          const working = days.has(day);
+          if (!working) {
+            return `<div class="flex flex-col items-center gap-1 p-1 min-h-[48px] justify-center">
+              <span class="text-gray-700 text-xs">—</span>
+            </div>`;
+          }
+          return `<div class="flex flex-col items-center gap-1 p-1 min-h-[48px] justify-center">
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg ${bg} border ${border} text-xs font-bold ${text}">
+              ${emp.name.split(' ')[0]}
+              <span class="text-[10px] opacity-75">$${(emp.dailyPay || 0)}/d</span>
+            </span>
+          </div>`;
+        }).join('');
 
-    // ── Profit Margins ─────────────────────────────────────────────────────────
-    async function loadProfitMargins() {
-      const res = await fetch(API + '/dashboard/profit-margins');
-      const data = await res.json();
-      const tbody = document.getElementById('profit-body');
-      const margins = data.margins || [];
-      if (!margins.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = margins.map(m => {
-        const marginVal = parseFloat(m.margin);
-        const marginClass = marginVal >= 50 ? 'text-neon' : marginVal >= 25 ? 'text-yellow-400' : 'text-red-400';
-        return `
-          <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
-            <td class="px-4 py-3 font-medium text-gray-100">${m.name}</td>
-            <td class="px-4 py-3 text-green-400">${usd(m.revenue)}</td>
-            <td class="px-4 py-3 text-red-400">${usd(m.expenseShare)}</td>
-            <td class="px-4 py-3 text-purple-400 font-semibold">${usd(m.net)}</td>
-            <td class="px-4 py-3 font-bold ${marginClass}">${pct(m.margin)}</td>
-          </tr>
-        `;
+        return `<div class="grid grid-cols-7 gap-1 mb-2 items-center">
+          <div class="text-xs font-semibold text-gray-300 truncate pr-1" title="${emp.name}">${emp.name}</div>
+          ${cells}
+        </div>`;
       }).join('');
+
+      console.log('[DEBUG schedule] rendered ' + arr.length + ' employee rows');
     }
 
-    // ── Expense Modal ──────────────────────────────────────────────────────────
+    // ── Employee Modal ──────────────────────────────────────────────────────
+
+    function openEmployeeModal(employee) {
+      document.getElementById('employee-modal').classList.add('active');
+      document.getElementById('emp-error').classList.add('hidden');
+      const form = document.getElementById('emp-form');
+      form.reset();
+      form.querySelectorAll('[name="assignedDays"]').forEach(cb => cb.checked = false);
+      document.getElementById('emp-id').value = '';
+      if (employee) {
+        document.getElementById('emp-id').value = employee.id || '';
+        document.getElementById('emp-name').value = employee.name || '';
+        document.getElementById('emp-days').value = employee.daysPerWeek || '';
+        document.getElementById('emp-pay').value = employee.dailyPay || '';
+        (employee.assignedDays || []).forEach(day => {
+          const cb = form.querySelector('[name="assignedDays"][value="' + day + '"]');
+          if (cb) cb.checked = true;
+        });
+      }
+    }
+
+    function closeEmployeeModal() {
+      document.getElementById('employee-modal').classList.remove('active');
+    }
+
+    async function submitEmployee(e) {
+      e.preventDefault();
+      const form    = document.getElementById('emp-form');
+      const fd      = new FormData(form);
+      const id      = document.getElementById('emp-id').value;
+      const payload = {
+        name:        fd.get('name'),
+        daysPerWeek: parseInt(fd.get('daysPerWeek')) || 0,
+        dailyPay:    parseFloat(fd.get('dailyPay')) || 0,
+        assignedDays: Array.from(form.querySelectorAll('[name="assignedDays"]:checked')).map(cb => cb.value),
+      };
+      if (id) payload.id = id;
+
+      const errorEl = document.getElementById('emp-error');
+      errorEl.classList.add('hidden');
+
+      try {
+        const res  = await fetch(API + '/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data  = await res.json();
+        if (!res.ok) throw new Error((data.error || '') + ' (HTTP ' + res.status + ')');
+        console.log('[DEBUG schedule] POST /employees →', JSON.stringify(data.employee));
+        closeEmployeeModal();
+        // Reload everything including schedule
+        loadDashboard();
+      } catch (err) {
+        console.error('[DEBUG schedule] submitEmployee error:', err);
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Expense Modal ────────────────────────────────────────────────────────
+
     function openExpenseModal() {
       document.getElementById('expense-modal').classList.add('active');
       document.getElementById('expense-error').classList.add('hidden');
@@ -862,337 +709,41 @@
 
     async function submitExpense(e) {
       e.preventDefault();
-      const form = e.target;
-      const fd = new FormData(form);
+      const fd      = new FormData(e.target);
       const payload = {
-        category: fd.get('category'),
-        amount: parseFloat(fd.get('amount')),
-        date: fd.get('date'),
+        category:    fd.get('category'),
+        amount:     parseFloat(fd.get('amount')),
+        date:        fd.get('date'),
         description: fd.get('description'),
       };
       const errorEl = document.getElementById('expense-error');
       try {
-        const res = await fetch(API + '/expenses', {
+        const res  = await fetch(API + '/expenses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to submit');
-        }
+        const data  = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
         closeExpenseModal();
-        await loadDashboard();
+        loadDashboard();
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
       }
     }
 
-    // ── Add Client Modal ──────────────────────────────────────────────────────
-    let clientRowCount = 1;
-
-    function openAddClientModal() {
-      document.getElementById('add-client-modal').classList.add('active');
-      document.getElementById('add-client-error').classList.add('hidden');
-      document.getElementById('add-client-success').classList.add('hidden');
-      document.getElementById('add-client-form').reset();
-      // Reset to single row
-      const rows = document.getElementById('client-form-rows');
-      rows.innerHTML = createClientRowHTML(1);
-      clientRowCount = 1;
-    }
-
-    function closeAddClientModal() {
-      document.getElementById('add-client-modal').classList.remove('active');
-    }
-
-    function createClientRowHTML(num) {
-      return `
-        <div class="client-form-row bg-[#12151e] rounded-xl p-4 border border-[#2a2d3a] mb-3">
-          <div class="flex justify-between items-center mb-3">
-            <span class="text-xs font-semibold text-neon uppercase tracking-wide client-row-label">Client #${num}</span>
-            <button type="button" onclick="removeClientRow(this)" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition ${num === 1 ? 'hidden' : ''} remove-btn">
-              <i class="fa-solid fa-trash-can mr-1"></i>Remove
-            </button>
-          </div>
-          <div class="grid grid-cols-1 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Client Name</label>
-              <input type="text" name="client_name" required placeholder="e.g. John Smith"
-                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Address</label>
-              <input type="text" name="client_address" required placeholder="123 Main St, Anderson, SC"
-                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Price Per Cut ($)</label>
-                <input type="number" name="price_per_cut" step="0.01" min="0" required placeholder="0.00"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
-                <input type="number" name="total_cuts" min="0" required placeholder="0"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
-              <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
-                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
-              <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
-                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"></textarea>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    function addAnotherClientRow() {
-      clientRowCount++;
-      const rows = document.getElementById('client-form-rows');
-      rows.insertAdjacentHTML('beforeend', createClientRowHTML(clientRowCount));
-    }
-
-    function removeClientRow(button) {
-      const row = button.closest('.client-form-row');
-      row.remove();
-      // Re-number remaining rows
-      const allRows = document.querySelectorAll('#client-form-rows .client-form-row');
-      clientRowCount = allRows.length;
-      allRows.forEach((r, i) => {
-        r.querySelector('.client-row-label').textContent = `Client #${i + 1}`;
-        const removeBtn = r.querySelector('.remove-btn');
-        if (removeBtn) removeBtn.classList.toggle('hidden', i === 0);
+    // Backdrop close for both modals
+    ['expense-modal','employee-modal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', e => {
+        if (e.target === e.currentTarget) {
+          if (id === 'expense-modal') closeExpenseModal(); else closeEmployeeModal();
+        }
       });
-    }
-
-    async function submitClients(e) {
-      e.preventDefault();
-      const errorEl = document.getElementById('add-client-error');
-      const successEl = document.getElementById('add-client-success');
-      errorEl.classList.add('hidden');
-      successEl.classList.add('hidden');
-
-      const allRows = document.querySelectorAll('#client-form-rows .client-form-row');
-      const clients = [];
-
-      for (const row of allRows) {
-        const name = row.querySelector('[name="client_name"]').value.trim();
-        const address = row.querySelector('[name="client_address"]').value.trim();
-        const pricePerCut = parseFloat(row.querySelector('[name="price_per_cut"]').value) || 0;
-        const totalCuts = parseInt(row.querySelector('[name="total_cuts"]').value) || 0;
-        const mileageRoundtrip = parseFloat(row.querySelector('[name="mileage_roundtrip"]').value) || 0;
-        const notes = row.querySelector('[name="client_notes"]').value.trim();
-
-        if (!name || !address) {
-          errorEl.textContent = 'Client Name and Address are required for all entries.';
-          errorEl.classList.remove('hidden');
-          return;
-        }
-
-        clients.push({
-          name,
-          address,
-          pricePerCut,
-          totalCuts,
-          mileageRoundtrip,
-          notes,
-        });
-      }
-
-      try {
-        const res = await fetch(API + '/clients/bulk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clients }),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to add clients');
-        }
-        successEl.textContent = `Successfully added ${clients.length} client(s)!`;
-        successEl.classList.remove('hidden');
-        setTimeout(() => {
-          closeAddClientModal();
-          window.location.reload();
-        }, 1200);
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.classList.remove('hidden');
-      }
-    }
-
-    // ── Close modal on backdrop click ─────────────────────────────────────────
-    document.getElementById('expense-modal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeExpenseModal();
-    });
-    document.getElementById('add-client-modal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeAddClientModal();
-    });
-    document.getElementById('employee-modal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeEmployeeModal();
     });
 
-    // ── Employee Schedule Helpers ─────────────────────────────────────────────
-    const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-    const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    const EMP_COLORS = {
-      Bentley: { bg: 'bg-blue-900/40', border: 'border-blue-600', text: 'text-blue-300' },
-      Kevin: { bg: 'bg-purple-900/40', border: 'border-purple-600', text: 'text-purple-300' },
-      'Mr. Lee': { bg: 'bg-orange-900/40', border: 'border-orange-600', text: 'text-orange-300' },
-    };
-    const COLOR_NAMES = Object.keys(EMP_COLORS);
-
-    function getEmpColor(name) {
-      const idx = COLOR_NAMES.indexOf(name);
-      if (idx >= 0) return EMP_COLORS[COLOR_NAMES[idx % COLOR_NAMES.length]];
-      // Cycle through fallback colors
-      const fallbacks = [
-        { bg: 'bg-cyan-900/40', border: 'border-cyan-600', text: 'text-cyan-300' },
-        { bg: 'bg-pink-900/40', border: 'border-pink-600', text: 'text-pink-300' },
-        { bg: 'bg-yellow-900/40', border: 'border-yellow-600', text: 'text-yellow-300' },
-        { bg: 'bg-red-900/40', border: 'border-red-600', text: 'text-red-300' },
-      ];
-      return fallbacks[(idx === -1 ? COLOR_NAMES.length : idx) % fallbacks.length];
-    }
-
-    function loadEmployees() {
-      fetch(API + '/employees')
-        .then(r => r.ok ? r.json() : Promise.reject(r))
-        .then(data => {
-          window.employees = data.employees || [];
-          renderWeeklySchedule(window.employees);
-        })
-        .catch(err => console.error('[employees] load error:', err));
-    }
-
-    function renderWeeklySchedule(employees) {
-      const grid = document.getElementById('weekly-schedule');
-      if (!grid) return;
-      const empArr = Array.isArray(employees) ? employees : (employees || []);
-
-      // Header row: day labels
-      let html = DAY_LABELS.map(d => `
-        <div class="text-center">
-          <span class="text-xs font-semibold text-gray-500 uppercase">${d}</span>
-        </div>
-      `).join('');
-
-      // Data rows — one row per employee
-      empArr.forEach(emp => {
-        const color = getEmpColor(emp.name);
-        html += `<div class="col-span-7 flex flex-wrap gap-1 py-1 border-t border-[#2a2d3a]/50"></div>`;
-        html += `<div class="col-span-7 flex flex-wrap gap-1">`;
-        DAY_KEYS.forEach(day => {
-          const isScheduled = Array.isArray(emp.assignedDays) && emp.assignedDays.includes(day);
-          const weeklyCost = ((emp.daysPerWeek || 0) * (emp.dailyPay || 0)).toFixed(0);
-          if (isScheduled) {
-            html += `
-              <div class="flex items-center gap-1 px-2 py-1 rounded-lg ${color.bg} border ${color.border} text-xs">
-                <span class="${color.text} font-medium">${emp.name}</span>
-                <span class="text-gray-500">·</span>
-                <span class="text-gray-400">$${Number(emp.dailyPay || 0).toFixed(0)}/d</span>
-              </div>`;
-          } else {
-            html += `<div class="px-2 py-1 text-xs text-gray-700">—</div>`;
-          }
-        });
-        html += `</div>`;
-      });
-
-      if (!empArr.length) {
-        html += `<div class="col-span-7 text-center py-6 text-gray-500 text-sm">No employees scheduled yet.</div>`;
-      }
-
-      grid.innerHTML = html;
-    }
-
-    function openEmployeeModal(employee) {
-      document.getElementById('employee-modal').classList.add('active');
-      document.getElementById('emp-error').classList.add('hidden');
-      const form = document.getElementById('employee-form');
-      form.reset();
-
-      // Reset day checkboxes
-      form.querySelectorAll('[name="assignedDays"]').forEach(cb => cb.checked = false);
-
-      if (employee) {
-        // Edit mode
-        document.getElementById('emp-modal-title').textContent = 'Edit Employee';
-        document.getElementById('emp-submit-btn').textContent = 'Save Changes';
-        document.getElementById('emp-modal-icon').className = 'fa-solid fa-user-pen text-neon';
-        document.getElementById('emp-id').value = employee.id || '';
-        document.getElementById('emp-name').value = employee.name || '';
-        document.getElementById('emp-days').value = employee.daysPerWeek || '';
-        document.getElementById('emp-pay').value = employee.dailyPay || '';
-        if (Array.isArray(employee.assignedDays)) {
-          employee.assignedDays.forEach(day => {
-            const cb = form.querySelector(`[name="assignedDays"][value="${day}"]`);
-            if (cb) cb.checked = true;
-          });
-        }
-      } else {
-        // Add mode
-        document.getElementById('emp-modal-title').textContent = 'Add Employee';
-        document.getElementById('emp-submit-btn').textContent = 'Add Employee';
-        document.getElementById('emp-modal-icon').className = 'fa-solid fa-users-gear text-neon';
-        document.getElementById('emp-id').value = '';
-      }
-    }
-
-    function closeEmployeeModal() {
-      document.getElementById('employee-modal').classList.remove('active');
-    }
-
-    async function submitEmployee(e) {
-      e.preventDefault();
-      const form = e.target;
-      const fd = new FormData(form);
-      const assignedDays = Array.from(form.querySelectorAll('[name="assignedDays"]:checked')).map(cb => cb.value);
-
-      const payload = {
-        name: fd.get('name'),
-        daysPerWeek: parseInt(fd.get('daysPerWeek')) || 0,
-        dailyPay: parseFloat(fd.get('dailyPay')) || 0,
-        assignedDays,
-      };
-
-      const id = document.getElementById('emp-id').value;
-      const errorEl = document.getElementById('emp-error');
-      errorEl.classList.add('hidden');
-
-      try {
-        const url = id ? API + '/employees/' + id : API + '/employees';
-        const method = id ? 'PUT' : 'POST';
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to save employee');
-        }
-        closeEmployeeModal();
-        loadEmployees();
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.classList.remove('hidden');
-      }
-    }
-
-    // ── Boot ───────────────────────────────────────────────────────────────────
+    // ── Boot ─────────────────────────────────────────────────────────────────
     loadDashboard();
-    loadClients();
-    loadProfitMargins();
-    loadEmployees();
   </script>
 </body>
 </html>
