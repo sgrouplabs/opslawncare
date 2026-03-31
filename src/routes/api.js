@@ -98,9 +98,37 @@ router.post('/expenses', async (req, res) => {
   }
 });
 
+// PUT /api/expenses/:id — update an existing expense row
+router.put('/expenses/:id', async (req, res) => {
+  const { id } = req.params;
+  const { category, amount, date, description } = req.body;
+  if (!category || !amount || !date) {
+    return res.status(400).json({ error: 'Missing required fields: category, amount, date', code: 'MISSING_FIELDS' });
+  }
+  try {
+    const updated = await sheets.updateExpense(id, { category, amount, date, description: description || '' });
+    console.log('[API] PUT /expenses/' + id + ' → ok');
+    res.json({ success: true, expense: updated });
+  } catch (err) {
+    console.error('[API] PUT /expenses error:', err.message);
+    res.status(500).json({ error: err.message, code: 'EXPENSE_UPDATE_ERROR' });
+  }
+});
+
+// DELETE /api/expenses/:id — remove expense
+router.delete('/expenses/:id', async (req, res) => {
+  try {
+    await sheets.deleteExpense(req.params.id);
+    console.log('[API] DELETE /expenses/' + req.params.id + ' → ok');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[API] DELETE /expenses error:', err.message);
+    res.status(500).json({ error: 'Failed to delete expense', code: 'EXPENSE_DELETE_ERROR' });
+  }
+});
+
 // ─── Employees ────────────────────────────────────────────────────────────────
 
-// GET /api/employees — fetch all employees
 router.get('/employees', async (req, res) => {
   try {
     const employees = await sheets.getEmployees();
@@ -112,8 +140,6 @@ router.get('/employees', async (req, res) => {
   }
 });
 
-// POST /api/employees — create or update (upsert)
-// Body: { id?, name, daysPerWeek, dailyPay, assignedDays[] }
 router.post('/employees', async (req, res) => {
   const { id, name, daysPerWeek, dailyPay, assignedDays } = req.body;
   if (!name || daysPerWeek == null || dailyPay == null || !Array.isArray(assignedDays)) {
@@ -132,7 +158,6 @@ router.post('/employees', async (req, res) => {
   }
 });
 
-// DELETE /api/employees/:id — remove employee
 router.delete('/employees/:id', async (req, res) => {
   try {
     await sheets.deleteEmployee(req.params.id);

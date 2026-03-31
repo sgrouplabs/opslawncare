@@ -216,6 +216,17 @@ module.exports = {
     MOCK_EXPENSES.push(expense);
     return expense;
   },
+  updateExpense: async (id, data) => {
+    const idx = MOCK_EXPENSES.findIndex(e => e.id === id);
+    if (idx < 0) throw new Error('Expense not found: ' + id);
+    MOCK_EXPENSES[idx] = { ...MOCK_EXPENSES[idx], ...data };
+    return MOCK_EXPENSES[idx];
+  },
+  deleteExpense: async (id) => {
+    const idx = MOCK_EXPENSES.findIndex(e => e.id === id);
+    if (idx < 0) throw new Error('Expense not found: ' + id);
+    MOCK_EXPENSES.splice(idx, 1);
+  },
   addClients: async (clientsArray) => {
     const added = clientsArray.map(c => {
       const newClient = { id: 'client-' + Date.now() + Math.random().toString(36).slice(2), ...c };

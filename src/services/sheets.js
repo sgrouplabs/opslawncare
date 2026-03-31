@@ -164,6 +164,31 @@ async function addExpense({ category, amount, date, description }) {
   return { id, category, amount, date, description };
 }
 
+// Update an existing expense row by ID
+async function updateExpense(id, { category, amount, date, description }) {
+  const rowNum = await findRowById('Expenses!A:A', id);
+  if (!rowNum) throw new Error('Expense not found: ' + id);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Expenses!A${rowNum}:E${rowNum}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [[id, category, amount, date, description || '']] },
+  });
+  return { id, category, amount, date, description };
+}
+
+// Delete expense row by ID
+async function deleteExpense(id) {
+  const rowNum = await findRowById('Expenses!A:A', id);
+  if (!rowNum) throw new Error('Expense not found: ' + id);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Expenses!A${rowNum}:E${rowNum}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [['', '', '', '', '']] },
+  });
+}
+
 // ─── Employees ────────────────────────────────────────────────────────────────
 
 async function getEmployees() {
@@ -286,6 +311,8 @@ module.exports = {
   getClientById,
   getExpenses,
   addExpense,
+  updateExpense,
+  deleteExpense,
   addClients,
   updateClient,
   deleteClient,

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ops Lawncare — Expenses</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --neon: #39FF14;
+      --neon-glow: 0 0 8px rgba(57,255,20,0.4);
+      --neon-glow-strong: 0 0 16px rgba(57,255,20,0.65);
+      --card-bg: #1a1d27;
+      --card-border: #2a2d3a;
+    }
+    body { background-color: #0f1117; color: #f3f4f6; font-family: 'Segoe UI', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1a1d27; }
+    ::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 3px; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .card:hover { border-color: rgba(57,255,20,0.3); box-shadow: var(--neon-glow); }
+    .text-neon { color: var(--neon); }
+    .btn-neon {
+      background: var(--neon);
+      color: #000;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      border-radius: 0.5rem;
+    }
+    .btn-neon:hover { background: #4ade80; box-shadow: var(--neon-glow-strong); }
+    .modal { display: none; }
+    .modal.active { display: flex; }
+    tbody tr:hover { background: rgba(57,255,20,0.05); }
+    .badge-green {
+      background: rgba(57,255,20,0.15);
+      color: var(--neon);
+      border: 1px solid rgba(57,255,20,0.3);
+    }
+    .summary-card { border-left: 3px solid transparent; transition: all 0.3s ease; }
+    .summary-card:hover { border-left-color: var(--neon); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="bg-[#1a1d27] border-b border-[#2a2d3a] shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl select-none" style="filter: drop-shadow(0 0 6px rgba(57,255,20,0.7));">🌿</span>
+        <div>
+          <h1 class="text-lg font-bold text-neon tracking-wide">Ops Lawncare</h1>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest -mt-0.5">Anderson, SC</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 text-sm flex-wrap">
+        <span id="clock" class="text-gray-400 hidden sm:block"></span>
+        <a href="/" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie"></i> <span class="hidden sm:inline">Dashboard</span>
+        </a>
+        <a href="/clients.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-users"></i> <span class="hidden sm:inline">Clients</span>
+        </a>
+        <a href="/expenses.html" class="text-neon px-3 py-2 rounded-lg bg-green-900/20 border border-green-700/40 flex items-center gap-2">
+          <i class="fa-solid fa-receipt"></i> <span class="hidden sm:inline">Expenses</span>
+        </a>
+        <a href="/employees.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-users-gear"></i> <span class="hidden sm:inline">Employees</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Header Row -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-100 flex items-center gap-3">
+          <i class="fa-solid fa-receipt text-red-400"></i> Expenses
+        </h2>
+        <p class="text-gray-500 text-sm mt-1">Full history, time-based summaries, and edit controls</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="expense-count" class="badge-green px-3 py-1 rounded-full text-xs font-semibold">— expenses</span>
+        <button onclick="openAddExpenseModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
+          <i class="fa-solid fa-plus"></i> Add Expense
+        </button>
+      </div>
+    </div>
+
+    <!-- Time-Based Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <!-- Monthly -->
+      <div class="card summary-card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-gray-500 text-xs uppercase tracking-wider" id="monthly-label">Monthly</p>
+          <i class="fa-solid fa-calendar text-neon text-lg"></i>
+        </div>
+        <p class="text-2xl font-bold text-red-400" id="card-monthly">—</p>
+        <p class="text-xs text-gray-500 mt-1" id="monthly-count">0 transactions</p>
+      </div>
+      <!-- Quarterly -->
+      <div class="card summary-card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-gray-500 text-xs uppercase tracking-wider" id="quarterly-label">Quarterly</p>
+          <i class="fa-solid fa-chart-bar text-purple-400 text-lg"></i>
+        </div>
+        <p class="text-2xl font-bold text-red-400" id="card-quarterly">—</p>
+        <p class="text-xs text-gray-500 mt-1" id="quarterly-count">0 transactions</p>
+      </div>
+      <!-- Yearly -->
+      <div class="card summary-card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-gray-500 text-xs uppercase tracking-wider">Yearly</p>
+          <i class="fa-solid fa-calendar-days text-orange-400 text-lg"></i>
+        </div>
+        <p class="text-2xl font-bold text-red-400" id="card-yearly">—</p>
+        <p class="text-xs text-gray-500 mt-1" id="yearly-count">0 transactions</p>
+      </div>
+    </div>
+
+    <!-- Full Expenses Table -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-gray-100">All Expenses</h3>
+        <span class="text-xs text-gray-500" id="table-range">Showing 0–0 of 0</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
+            <tr>
+              <th class="px-4 py-3 text-gray-400">Date</th>
+              <th class="px-4 py-3 text-gray-400">Category</th>
+              <th class="px-4 py-3 text-gray-400">Description</th>
+              <th class="px-4 py-3 text-gray-400 text-right">Amount</th>
+              <th class="px-4 py-3 text-gray-400 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expenses-tbody" class="divide-y divide-[#2a2d3a]">
+            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">Loading expenses...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between mt-4 pt-3 border-t border-[#2a2d3a]">
+        <span class="text-xs text-gray-500" id="pagination-info">Page 1 of 1</span>
+        <div class="flex items-center gap-2">
+          <button onclick="prevPage()" id="btn-prev"
+            class="px-3 py-1.5 rounded-lg text-xs border border-[#2a2d3a] text-gray-400 hover:border-green-600 hover:text-neon transition disabled:opacity-30 disabled:cursor-not-allowed"
+            disabled>
+            <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+          </button>
+          <button onclick="nextPage()" id="btn-next"
+            class="px-3 py-1.5 rounded-lg text-xs border border-[#2a2d3a] text-gray-400 hover:border-green-600 hover:text-neon transition disabled:opacity-30 disabled:cursor-not-allowed"
+            disabled>
+            Next <i class="fa-solid fa-chevron-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Add Expense Modal -->
+  <div id="add-expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a] z-[10000]">
+      <button onclick="closeAddExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-receipt text-red-400"></i> Add Expense
+      </h3>
+      <form id="add-expense-form" onsubmit="submitAddExpense(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Category</label>
+          <select name="category" required id="add-expense-category"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
+            <option value="">Select category</option>
+            <option>Fuel</option><option>Equipment</option><option>Labor</option>
+            <option>Maintenance</option><option>Insurance</option><option>Supplies</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Amount ($)</label>
+          <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00" id="add-expense-amount"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Date</label>
+          <input type="date" name="date" required id="add-expense-date"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
+          <input type="text" name="description" placeholder="Optional note…" id="add-expense-description"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition">
+        </div>
+        <div id="add-expense-error" class="text-red-400 text-sm hidden"></div>
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Add Expense
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Expense Modal -->
+  <div id="edit-expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a] z-[10000]">
+      <button onclick="closeEditExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-pen-to-square text-blue-400"></i> Edit Expense
+      </h3>
+      <form id="edit-expense-form" onsubmit="submitEditExpense(event)" class="space-y-4">
+        <input type="hidden" name="id" id="edit-expense-id">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Category</label>
+          <select name="category" required id="edit-expense-category"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+            <option value="">Select category</option>
+            <option>Fuel</option><option>Equipment</option><option>Labor</option>
+            <option>Maintenance</option><option>Insurance</option><option>Supplies</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Amount ($)</label>
+          <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00" id="edit-expense-amount"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Date</label>
+          <input type="date" name="date" required id="edit-expense-date"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
+          <input type="text" name="description" placeholder="Optional note…" id="edit-expense-description"
+            class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        </div>
+        <div id="edit-expense-error" class="text-red-400 text-sm hidden"></div>
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin + '/api';
+    const ROWS_PER_PAGE = 10;
+
+    let allExpenses = [];
+    let currentPage  = 1;
+    let totalPages   = 1;
+
+    // ── Clock ───────────────────────────────────────────────────────────────
+    function updateClock() {
+      document.getElementById('clock').textContent = new Date().toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+    setInterval(updateClock, 60000);
+    updateClock();
+
+    const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+    // ── Date helpers ───────────────────────────────────────────────────────
+    function getYear()  { return new Date().getFullYear(); }
+    function getMonth() { return new Date().getMonth(); }   // 0-indexed
+    function getQuarter() { return Math.floor(new Date().getMonth() / 3) + 1; } // 1–4
+
+    function isInCurrentMonth(exp) {
+      const d = new Date(exp.date);
+      return d.getFullYear() === getYear() && d.getMonth() === getMonth();
+    }
+    function isInCurrentQuarter(exp) {
+      const d = new Date(exp.date);
+      return d.getFullYear() === getYear() && Math.floor(d.getMonth() / 3) + 1 === getQuarter();
+    }
+    function isInCurrentYear(exp) {
+      return new Date(exp.date).getFullYear() === getYear();
+    }
+
+    // ── Load expenses ──────────────────────────────────────────────────────
+    async function loadExpenses() {
+      try {
+        const res  = await fetch(API + '/expenses');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+        allExpenses = (data.expenses || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+        document.getElementById('expense-count').textContent =
+          `${allExpenses.length} expense${allExpenses.length !== 1 ? 's' : ''}`;
+        renderSummaryCards();
+        renderPage(1);
+      } catch (err) {
+        console.error('[expenses] loadExpenses error:', err);
+        document.getElementById('expenses-tbody').innerHTML =
+          `<tr><td colspan="5" class="px-4 py-10 text-center text-red-400">Failed to load: ${err.message}</td></tr>`;
+      }
+    }
+
+    // ── Summary Cards ───────────────────────────────────────────────────────
+    function renderSummaryCards() {
+      const monthly   = allExpenses.filter(isInCurrentMonth);
+      const quarterly = allExpenses.filter(isInCurrentQuarter);
+      const yearly    = allExpenses.filter(isInCurrentYear);
+
+      const monthNames = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+      const quarterLabels = ['Q1','Q2','Q3','Q4'];
+
+      const q = getQuarter();
+      document.getElementById('monthly-label').textContent = monthNames[getMonth()] + ' ' + getYear();
+      document.getElementById('quarterly-label').textContent = quarterLabels[q - 1] + ' ' + getYear();
+
+      document.getElementById('card-monthly').textContent   = usd(monthly.reduce((s, e) => s + e.amount, 0));
+      document.getElementById('card-quarterly').textContent  = usd(quarterly.reduce((s, e) => s + e.amount, 0));
+      document.getElementById('card-yearly').textContent     = usd(yearly.reduce((s, e) => s + e.amount, 0));
+
+      document.getElementById('monthly-count').textContent   = monthly.length   + ' transaction' + (monthly.length   !== 1 ? 's' : '');
+      document.getElementById('quarterly-count').textContent = quarterly.length + ' transaction' + (quarterly.length !== 1 ? 's' : '');
+      document.getElementById('yearly-count').textContent    = yearly.length    + ' transaction' + (yearly.length    !== 1 ? 's' : '');
+    }
+
+    // ── Pagination ───────────────────────────────────────────────────────────
+    function getPageSlice(page) {
+      totalPages = Math.max(1, Math.ceil(allExpenses.length / ROWS_PER_PAGE));
+      currentPage = Math.min(page, totalPages);
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      return allExpenses.slice(start, start + ROWS_PER_PAGE);
+    }
+
+    function renderPage(page) {
+      const slice = getPageSlice(page);
+      const tbody = document.getElementById('expenses-tbody');
+
+      if (!allExpenses.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No expenses found. Add your first one above!</td></tr>';
+      } else if (!slice.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No expenses on this page.</td></tr>';
+      } else {
+        tbody.innerHTML = slice.map(e => `
+          <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
+            <td class="px-4 py-3.5 text-gray-300 text-sm">${e.date}</td>
+            <td class="px-4 py-3.5">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-900/30 text-red-300 border border-red-800/40">
+                ${e.category}
+              </span>
+            </td>
+            <td class="px-4 py-3.5 text-gray-400 text-sm max-w-xs truncate">${e.description || '—'}</td>
+            <td class="px-4 py-3.5 text-red-400 font-semibold text-right">${usd(e.amount)}</td>
+            <td class="px-4 py-3.5 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <button onclick='openEditExpenseModal(${JSON.stringify(e).replace(/'/g, "&#39;")})'
+                  class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded border border-blue-900/50 hover:border-blue-700 transition"
+                  title="Edit">
+                  <i class="fa-solid fa-pencil"></i>
+                </button>
+                <button onclick="deleteExpense('${e.id}')"
+                  class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition"
+                  title="Delete">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`).join('');
+      }
+
+      // Range text
+      const start = allExpenses.length === 0 ? 0 : (currentPage - 1) * ROWS_PER_PAGE + 1;
+      const end   = Math.min(currentPage * ROWS_PER_PAGE, allExpenses.length);
+      document.getElementById('table-range').textContent =
+        `Showing ${start}–${end} of ${allExpenses.length}`;
+
+      // Pagination info
+      document.getElementById('pagination-info').textContent =
+        `Page ${currentPage} of ${totalPages}`;
+
+      // Button states
+      document.getElementById('btn-prev').disabled = currentPage <= 1;
+      document.getElementById('btn-next').disabled = currentPage >= totalPages;
+    }
+
+    function prevPage() { renderPage(currentPage - 1); }
+    function nextPage() { renderPage(currentPage + 1); }
+
+    // ── Delete ───────────────────────────────────────────────────────────────
+    async function deleteExpense(id) {
+      if (!confirm('Delete this expense? This cannot be undone.')) return;
+      try {
+        const res = await fetch(API + '/expenses/' + id, { method: 'DELETE' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Delete failed');
+        }
+        await loadExpenses();
+      } catch (err) {
+        alert('Error deleting expense: ' + err.message);
+      }
+    }
+
+    // ── Add Expense Modal ────────────────────────────────────────────────────
+    function openAddExpenseModal() {
+      document.getElementById('add-expense-modal').classList.add('active');
+      document.getElementById('add-expense-error').classList.add('hidden');
+      document.getElementById('add-expense-form').reset();
+      document.getElementById('add-expense-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    function closeAddExpenseModal() {
+      document.getElementById('add-expense-modal').classList.remove('active');
+    }
+
+    async function submitAddExpense(e) {
+      e.preventDefault();
+      const errorEl = document.getElementById('add-expense-error');
+      errorEl.classList.add('hidden');
+      const payload = {
+        category:    document.getElementById('add-expense-category').value,
+        amount:      parseFloat(document.getElementById('add-expense-amount').value) || 0,
+        date:        document.getElementById('add-expense-date').value,
+        description: document.getElementById('add-expense-description').value.trim(),
+      };
+      if (!payload.category || !payload.amount || !payload.date) {
+        errorEl.textContent = 'Category, amount, and date are required.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        const res  = await fetch(API + '/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Add failed');
+        closeAddExpenseModal();
+        await loadExpenses();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Edit Expense Modal ──────────────────────────────────────────────────
+    function openEditExpenseModal(expense) {
+      document.getElementById('edit-expense-modal').classList.add('active');
+      document.getElementById('edit-expense-error').classList.add('hidden');
+      document.getElementById('edit-expense-id').value          = expense.id || '';
+      document.getElementById('edit-expense-category').value     = expense.category || '';
+      document.getElementById('edit-expense-amount').value       = expense.amount ?? '';
+      document.getElementById('edit-expense-date').value        = expense.date || '';
+      document.getElementById('edit-expense-description').value  = expense.description || '';
+    }
+
+    function closeEditExpenseModal() {
+      document.getElementById('edit-expense-modal').classList.remove('active');
+    }
+
+    async function submitEditExpense(e) {
+      e.preventDefault();
+      const id       = document.getElementById('edit-expense-id').value;
+      const errorEl  = document.getElementById('edit-expense-error');
+      errorEl.classList.add('hidden');
+      const payload = {
+        category:    document.getElementById('edit-expense-category').value,
+        amount:      parseFloat(document.getElementById('edit-expense-amount').value) || 0,
+        date:        document.getElementById('edit-expense-date').value,
+        description: document.getElementById('edit-expense-description').value.trim(),
+      };
+      if (!payload.category || !payload.amount || !payload.date) {
+        errorEl.textContent = 'Category, amount, and date are required.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        const res  = await fetch(API + '/expenses/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Update failed');
+        closeEditExpenseModal();
+        await loadExpenses();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Backdrop close ───────────────────────────────────────────────────────
+    ['add-expense-modal', 'edit-expense-modal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', e => {
+        if (e.target === e.currentTarget) {
+          if (id === 'add-expense-modal') closeAddExpenseModal();
+          else closeEditExpenseModal();
+        }
+      });
+    });
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    loadExpenses();
+  </script>
+</body>
+</html>
