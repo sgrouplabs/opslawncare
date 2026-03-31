@@ -120,8 +120,8 @@
           </div>
         </div>
 
-        <!-- Weekly Schedule (FIXED) -->
-        <div class="card p-5">
+        <!-- Weekly Schedule — HIDDEN temporarily -->
+        <div class="card p-5 hidden">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
               <i class="fa-solid fa-calendar-week text-neon"></i> Weekly Schedule
@@ -130,7 +130,6 @@
               <i class="fa-solid fa-user-plus"></i> Add
             </button>
           </div>
-          <!-- 7-day header -->
           <div class="grid grid-cols-7 gap-1 mb-2">
             <div class="text-center text-xs font-bold text-gray-500">Mon</div>
             <div class="text-center text-xs font-bold text-gray-500">Tue</div>
@@ -140,7 +139,6 @@
             <div class="text-center text-xs font-bold text-gray-500">Sat</div>
             <div class="text-center text-xs font-bold text-gray-500">Sun</div>
           </div>
-          <!-- Schedule rows injected here by renderSchedule() -->
           <div id="schedule-body">
             <div class="text-center text-gray-600 text-xs py-6">Loading schedule…</div>
           </div>
@@ -365,7 +363,7 @@
   <script>
     const API = window.location.origin + '/api';
 
-    // ── Clock ─────────────────────────────────────────────────────────────────
+    // ── Clock ───────────────────────────────────────────────────────────────
     function updateClock() {
       document.getElementById('clock').textContent = new Date().toLocaleString('en-US', {
         weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -374,14 +372,14 @@
     setInterval(updateClock, 60000);
     updateClock();
 
-    const usd   = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
-    const pct   = n => Number(n || 0).toFixed(1) + '%';
+    const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const pct = n => Number(n || 0).toFixed(1) + '%';
 
-    // ── Leaflet / Map ─────────────────────────────────────────────────────────
+    // ── Leaflet / Map ─────────────────────────────────────────────────────
 
     const GEOCODE_CACHE = new Map();
     const GEOCODE_QUEUE  = [];
-    let   GEOCODE_TIMER  = null;
+    let   GEOCODE_TIMER = null;
 
     async function geocodeAddress(address) {
       if (!address) return null;
@@ -396,13 +394,11 @@
       if (!GEOCODE_QUEUE.length) { GEOCODE_TIMER = null; return; }
       const { address, resolve } = GEOCODE_QUEUE.shift();
       try {
-        const url   = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address + ', Anderson, SC, USA');
-        const res   = await fetch(url, { headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncare/1.0' }, signal: AbortSignal.timeout(8000) });
+        const url  = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address + ', Anderson, SC, USA');
+        const res  = await fetch(url, { headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncare/1.0' }, signal: AbortSignal.timeout(8000) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data  = await res.json();
-        const lat   = data[0] ? parseFloat(data[0].lat) : null;
-        const lon   = data[0] ? parseFloat(data[0].lon) : null;
-        const coord = lat && lon ? { lat, lon } : null;
+        const data = await res.json();
+        const coord = data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null;
         GEOCODE_CACHE.set(address, coord);
         resolve(coord);
       } catch (_) {
@@ -414,8 +410,7 @@
 
     const map = L.map('client-map').setView([34.5034, -82.6501], 12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 19,
+      attribution: '© OpenStreetMap', maxZoom: 19,
     }).addTo(map);
 
     const neonIcon = L.divIcon({
@@ -436,18 +431,16 @@
         m.bindPopup(`<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ${c.address}</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts</p></div>`);
         clientMarkers.push(m);
       });
-      if (pairs.length > 0) {
-        const g = L.featureGroup(pairs.map(p => p.marker || L.marker([0,0])));
-        // rebuild properly
-        const group = L.featureGroup(clientMarkers);
-        map.fitBounds(group.getBounds().pad(0.15));
+      if (clientMarkers.length > 0) {
+        const g = L.featureGroup(clientMarkers);
+        map.fitBounds(g.getBounds().pad(0.15));
       } else {
         map.setView([34.5034, -82.6501], 12);
       }
       console.log('[map] ' + clientMarkers.length + '/' + clients.length + ' clients plotted');
     }
 
-    // ── Dashboard Load ──────────────────────────────────────────────────────────
+    // ── Dashboard Load ────────────────────────────────────────────────────
 
     async function loadDashboard() {
       try {
@@ -476,9 +469,9 @@
         document.getElementById('fin-net').textContent      = usd(summary.netProfit);
 
         // Recent expenses
-        const expContainer = document.getElementById('recent-expenses');
+        const ec = document.getElementById('recent-expenses');
         if (summary.recentExpenses && summary.recentExpenses.length) {
-          expContainer.innerHTML = summary.recentExpenses.map(e => `
+          ec.innerHTML = summary.recentExpenses.map(e => `
             <div class="flex items-center justify-between py-2 border-b border-[#2a2d3a]/50 last:border-0">
               <div>
                 <p class="font-medium text-gray-200 text-sm">${e.category}</p>
@@ -487,7 +480,7 @@
               <span class="text-red-400 font-semibold text-sm">${usd(e.amount)}</span>
             </div>`).join('');
         } else {
-          expContainer.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No expenses recorded.</p>';
+          ec.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No expenses recorded.</p>';
         }
 
         // Weather
@@ -496,8 +489,7 @@
         // Clients table
         const clientList = clients.clients || [];
         document.getElementById('client-table').innerHTML = clientList.length
-          ? clientList.map(c => `
-            <tr class="hover:bg-[#39FF14]/5 transition">
+          ? clientList.map(c => `<tr class="hover:bg-[#39FF14]/5 transition">
               <td class="px-4 py-3 font-medium text-gray-100 text-sm">${c.name}</td>
               <td class="px-4 py-3 text-gray-400 text-xs">${c.address}</td>
               <td class="px-4 py-3 text-neon font-semibold text-sm">${usd(c.pricePerCut)}</td>
@@ -524,7 +516,7 @@
         // Map
         plotClients(clientList);
 
-        // ── WEEKLY SCHEDULE — FIX: call renderSchedule with live data ──────────────────
+        // Schedule (data fetched but widget is hidden; kept live for when unhidden)
         window.empData = employees.employees || [];
         renderSchedule(window.empData);
 
@@ -533,18 +525,13 @@
       }
     }
 
-    // ── Weather Grid ─────────────────────────────────────────────────────────
+    // ── Weather Grid ───────────────────────────────────────────────────
 
     function renderWeatherGrid(forecast) {
       const grid = document.getElementById('weather-grid');
       if (!forecast || !forecast.length) {
         grid.innerHTML = '<div class="col-span-7 text-gray-500 text-sm py-4 text-center">Weather unavailable.</div>';
         return;
-      }
-      // Today highlight
-      const todayIcon = document.getElementById('today-icon') || {};
-      if (document.getElementById('today-icon')) {
-        document.getElementById('today-icon').textContent = forecast[0].icon || '🌤️';
       }
       grid.innerHTML = forecast.map(d => {
         const day = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
@@ -557,23 +544,18 @@
       }).join('');
     }
 
-    // ── WEEKLY SCHEDULE RENDERING ─────────────────────────────────────────────────
-    // FIX: Actually uses employee data instead of hardcoded dashes.
+    // ── Weekly Schedule Rendering ────────────────────────────────────────
 
-    const DAY_COLS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-    const DAY_HEADERS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
-    // Employee pill colors
+    const DAY_COLS  = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
     const NAME_COLORS = {
       Bentley:   { bg: 'bg-blue-900/50',   border: 'border-blue-600',   text: 'text-blue-300'   },
-      Kevin:    { bg: 'bg-purple-900/50', border: 'border-purple-600', text: 'text-purple-300' },
+      Kevin:     { bg: 'bg-purple-900/50', border: 'border-purple-600', text: 'text-purple-300' },
       'Mr. Lee':{ bg: 'bg-orange-900/50', border: 'border-orange-600', text: 'text-orange-300' },
     };
     const FALLBACK_COLORS = [
       { bg: 'bg-cyan-900/50',   border: 'border-cyan-600',   text: 'text-cyan-300'   },
       { bg: 'bg-pink-900/50',   border: 'border-pink-600',   text: 'text-pink-300'   },
       { bg: 'bg-yellow-900/50', border: 'border-yellow-600', text: 'text-yellow-300' },
-      { bg: 'bg-red-900/50',    border: 'border-red-600',    text: 'text-red-300'    },
     ];
     const COLOR_NAMES = Object.keys(NAME_COLORS);
 
@@ -581,38 +563,24 @@
       return NAME_COLORS[name] || FALLBACK_COLORS[COLOR_NAMES.length % FALLBACK_COLORS.length];
     }
 
-    /**
-     * Normalize assignedDays from whatever format it comes in (string or array).
-     * "Monday,Wednesday,Friday" or ['monday','wednesday','friday'] → lowercase-set
-     */
     function parseAssignedDays(raw) {
       if (!raw) return new Set();
       if (Array.isArray(raw)) return new Set(raw.map(d => String(d).trim().toLowerCase()));
-      // Comma-separated string from Sheets
       return new Set(raw.split(',').map(d => d.trim().toLowerCase()));
     }
 
-    /**
-     * Renders the Weekly Schedule grid.
-     * Each employee gets one row of 7 cells; their name appears as a pill
-     * in each day column they are assigned to work.
-     */
     function renderSchedule(employees) {
       const body = document.getElementById('schedule-body');
       const arr  = Array.isArray(employees) ? employees : [];
-
       if (!arr.length) {
         body.innerHTML = '<div class="text-center text-gray-600 text-xs py-6">No employees added yet. Click "Add" to get started.</div>';
         return;
       }
-
       body.innerHTML = arr.map(emp => {
         const days = parseAssignedDays(emp.assignedDays);
         const { bg, border, text } = getColor(emp.name);
-
         const cells = DAY_COLS.map(day => {
-          const working = days.has(day);
-          if (!working) {
+          if (!days.has(day)) {
             return `<div class="flex flex-col items-center gap-1 p-1 min-h-[48px] justify-center">
               <span class="text-gray-700 text-xs">—</span>
             </div>`;
@@ -624,17 +592,15 @@
             </span>
           </div>`;
         }).join('');
-
         return `<div class="grid grid-cols-7 gap-1 mb-2 items-center">
           <div class="text-xs font-semibold text-gray-300 truncate pr-1" title="${emp.name}">${emp.name}</div>
           ${cells}
         </div>`;
       }).join('');
-
       console.log('[DEBUG schedule] rendered ' + arr.length + ' employee rows');
     }
 
-    // ── Employee Modal ──────────────────────────────────────────────────────
+    // ── Modals ─────────────────────────────────────────────────────────
 
     function openEmployeeModal(employee) {
       document.getElementById('employee-modal').classList.add('active');
@@ -662,8 +628,8 @@
     async function submitEmployee(e) {
       e.preventDefault();
       const form    = document.getElementById('emp-form');
-      const fd      = new FormData(form);
-      const id      = document.getElementById('emp-id').value;
+      const fd     = new FormData(form);
+      const id     = document.getElementById('emp-id').value;
       const payload = {
         name:        fd.get('name'),
         daysPerWeek: parseInt(fd.get('daysPerWeek')) || 0,
@@ -671,30 +637,21 @@
         assignedDays: Array.from(form.querySelectorAll('[name="assignedDays"]:checked')).map(cb => cb.value),
       };
       if (id) payload.id = id;
-
       const errorEl = document.getElementById('emp-error');
       errorEl.classList.add('hidden');
-
       try {
-        const res  = await fetch(API + '/employees', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const res  = await fetch(API + '/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data  = await res.json();
         if (!res.ok) throw new Error((data.error || '') + ' (HTTP ' + res.status + ')');
-        console.log('[DEBUG schedule] POST /employees →', JSON.stringify(data.employee));
+        console.log('[DEBUG] POST /employees →', JSON.stringify(data.employee));
         closeEmployeeModal();
-        // Reload everything including schedule
         loadDashboard();
       } catch (err) {
-        console.error('[DEBUG schedule] submitEmployee error:', err);
+        console.error('[DEBUG] submitEmployee error:', err);
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
       }
     }
-
-    // ── Expense Modal ────────────────────────────────────────────────────────
 
     function openExpenseModal() {
       document.getElementById('expense-modal').classList.add('active');
@@ -710,19 +667,10 @@
     async function submitExpense(e) {
       e.preventDefault();
       const fd      = new FormData(e.target);
-      const payload = {
-        category:    fd.get('category'),
-        amount:     parseFloat(fd.get('amount')),
-        date:        fd.get('date'),
-        description: fd.get('description'),
-      };
+      const payload = { category: fd.get('category'), amount: parseFloat(fd.get('amount')), date: fd.get('date'), description: fd.get('description') };
       const errorEl = document.getElementById('expense-error');
       try {
-        const res  = await fetch(API + '/expenses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const res  = await fetch(API + '/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data  = await res.json();
         if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
         closeExpenseModal();
@@ -733,7 +681,6 @@
       }
     }
 
-    // Backdrop close for both modals
     ['expense-modal','employee-modal'].forEach(id => {
       document.getElementById(id).addEventListener('click', e => {
         if (e.target === e.currentTarget) {
@@ -742,7 +689,6 @@
       });
     });
 
-    // ── Boot ─────────────────────────────────────────────────────────────────
     loadDashboard();
   </script>
 </body>
