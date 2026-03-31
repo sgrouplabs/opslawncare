@@ -45,6 +45,19 @@
     .kpi-card { border-left: 3px solid transparent; transition: all 0.3s ease; }
     .kpi-card:hover { border-left-color: var(--neon); }
     #client-map { border-radius: 0.75rem; }
+    /* Push all Leaflet panes below modal layers */
+    .leaflet-pane { z-index: 1 !important; }
+    .leaflet-map-pane { z-index: 1 !important; }
+    .leaflet-overlay-pane { z-index: 1 !important; }
+    .leaflet-shadow-pane { z-index: 1 !important; }
+    .leaflet-marker-pane { z-index: 1 !important; }
+    .leaflet-tile-pane { z-index: 1 !important; }
+    .leaflet-popup-pane { z-index: 1 !important; }
+    .leaflet-control-pane { z-index: 2 !important; }
+    .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
+    .leaflet-container { z-index: 1 !important; }
+    .leaflet-modal-mask { z-index: 998 !important; }
+    .leaflet-modal { z-index: 999 !important; }
     .leaflet-popup-content-wrapper { background: #1a1d27; color: #f3f4f6; border: 1px solid #2a2d3a; border-radius: 0.75rem; }
     .leaflet-popup-tip { background: #1a1d27; }
   </style>
@@ -169,7 +182,8 @@
           <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2 mb-4">
             <i class="fa-solid fa-map-location-dot text-neon"></i> Client Map
           </h2>
-          <div id="client-map" class="w-full h-64 border border-[#2a2d3a]"></div>
+          <!-- z-0 anchors the map container below all modal layers -->
+          <div id="client-map" class="w-full h-64 border border-[#2a2d3a] z-0"></div>
         </div>
 
         <!-- Client Route Table -->
@@ -251,8 +265,9 @@
   </main>
 
   <!-- Add Expense Modal -->
-  <div id="expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
-    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
+  <!-- Backdrop: z-[999] — sits above the map; Content: z-[10000] — sits above everything -->
+  <div id="expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a] z-[10000]">
       <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -292,8 +307,8 @@
   </div>
 
   <!-- Add Employee Modal -->
-  <div id="employee-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
-    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a]">
+  <div id="employee-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a] z-[10000]">
       <button onclick="closeEmployeeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -410,7 +425,7 @@
 
     const map = L.map('client-map').setView([34.5034, -82.6501], 12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap', maxZoom: 19,
+      attribution: '© OpenStreetmap', maxZoom: 19,
     }).addTo(map);
 
     const neonIcon = L.divIcon({
@@ -604,7 +619,7 @@
 
     function openEmployeeModal(employee) {
       document.getElementById('employee-modal').classList.add('active');
-      document.getElementById('emp-error').classList.add('hidden');
+      document.getElementByById('emp-error').classList.add('hidden');
       const form = document.getElementById('emp-form');
       form.reset();
       form.querySelectorAll('[name="assignedDays"]').forEach(cb => cb.checked = false);
