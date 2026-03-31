@@ -156,8 +156,8 @@
   </main>
 
   <!-- Add Client Modal -->
-  <div id="add-client-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-50">
-    <div class="card rounded-2xl w-full max-w-lg mx-4 p-6 relative border border-[#2a2d3a] max-h-[90vh] overflow-y-auto">
+  <div id="add-client-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-lg mx-4 p-6 relative border border-[#2a2d3a] max-h-[90vh] overflow-y-auto z-[10000]">
       <button onclick="closeAddClientModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -224,6 +224,65 @@
     </div>
   </div>
 
+  <!-- Edit Client Modal -->
+  <div id="edit-client-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
+    <div class="card rounded-2xl w-full max-w-lg mx-4 p-6 relative border border-[#2a2d3a] max-h-[90vh] overflow-y-auto z-[10000]">
+      <button onclick="closeEditClientModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-pen-to-square text-blue-400"></i> Edit Client
+      </h3>
+      <form id="edit-client-form" onsubmit="submitEditClient(event)" class="space-y-4">
+        <!-- Hidden ID field -->
+        <input type="hidden" name="client_id" id="edit-client-id">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Client Name</label>
+          <input type="text" name="client_name" id="edit-client-name" required placeholder="e.g. John Smith"
+            class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Address</label>
+          <input type="text" name="client_address" id="edit-client-address" required placeholder="123 Main St, Anderson, SC"
+            class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Price Per Cut ($)</label>
+            <input type="number" name="price_per_cut" id="edit-client-price" step="0.01" min="0" required placeholder="0.00"
+              class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
+            <input type="number" name="total_cuts" id="edit-client-cuts" min="0" required placeholder="0"
+              class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
+          <input type="number" name="mileage_roundtrip" id="edit-client-mileage" step="0.1" min="0" required placeholder="0.0"
+            class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
+          <textarea name="client_notes" id="edit-client-notes" rows="2" placeholder="Gate code, dog in yard, etc."
+            class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"></textarea>
+        </div>
+
+        <div id="edit-client-error" class="text-red-400 text-sm hidden"></div>
+
+        <button type="submit" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script>
     const API = window.location.origin + '/api';
     let allClients = [];
@@ -248,14 +307,7 @@
         const res = await fetch(API + '/clients');
         const data = await res.json();
         console.log('[DEBUG] GET /api/clients raw response:', data);
-        console.log('[DEBUG] client array length:', (data.clients || []).length);
-        if (data.clients && data.clients.length > 0) {
-          console.log('[DEBUG] first client sample:', JSON.stringify(data.clients[0]));
-        }
-        if (!res.ok) {
-          console.error('[DEBUG] HTTP error:', res.status, data);
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
         allClients = data.clients || [];
         renderStats(allClients);
         renderTable(allClients);
@@ -296,7 +348,16 @@
             <td class="px-4 py-3.5 text-gray-400">${c.mileageRoundtrip || 0} mi</td>
             <td class="px-4 py-3.5">
               <div class="flex items-center gap-2">
-                <button onclick="deleteClient('${c.id}')" class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition" title="Delete">
+                <!-- Edit button -->
+                <button onclick='openEditClientModal(${JSON.stringify(c).replace(/'/g, "&#39;")})'
+                  class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded border border-blue-900/50 hover:border-blue-700 transition"
+                  title="Edit">
+                  <i class="fa-solid fa-pencil"></i>
+                </button>
+                <!-- Delete button -->
+                <button onclick="deleteClient('${c.id}')"
+                  class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition"
+                  title="Delete">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -310,7 +371,6 @@
       if (sortKey === key) sortAsc = !sortAsc;
       else { sortKey = key; sortAsc = true; }
 
-      // Update sort icons
       document.querySelectorAll('#clients-table th').forEach(th => {
         th.querySelector('.sort-icon')?.classList.remove('sort-active');
       });
@@ -320,7 +380,7 @@
       if (activeTh) {
         const icon = activeTh.querySelector('.sort-icon');
         icon.classList.add('sort-active');
-        icon.className = `fa-solid fa-sort-${sortAsc ? '-up' : 'down'} sort-icon sort-active ml-1`;
+        icon.className = `fa-solid fa-sort-${sortAsc ? 'up' : 'down'} sort-icon sort-active ml-1`;
       }
 
       const sorted = [...allClients].sort((a, b) => {
@@ -356,6 +416,62 @@
         await loadClients();
       } catch (err) {
         alert('Error deleting client: ' + err.message);
+      }
+    }
+
+    // ── Edit Client Modal ─────────────────────────────────────────────────────
+    function openEditClientModal(client) {
+      document.getElementById('edit-client-modal').classList.add('active');
+      document.getElementById('edit-client-error').classList.add('hidden');
+
+      // Populate all fields
+      document.getElementById('edit-client-id').value = client.id || '';
+      document.getElementById('edit-client-name').value = client.name || '';
+      document.getElementById('edit-client-address').value = client.address || '';
+      document.getElementById('edit-client-price').value = client.pricePerCut ?? '';
+      document.getElementById('edit-client-cuts').value = client.totalCuts ?? '';
+      document.getElementById('edit-client-mileage').value = client.mileageRoundtrip ?? '';
+      document.getElementById('edit-client-notes').value = client.notes || '';
+    }
+
+    function closeEditClientModal() {
+      document.getElementById('edit-client-modal').classList.remove('active');
+    }
+
+    async function submitEditClient(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-client-id').value;
+      const errorEl = document.getElementById('edit-client-error');
+      errorEl.classList.add('hidden');
+
+      const payload = {
+        name:        document.getElementById('edit-client-name').value.trim(),
+        address:     document.getElementById('edit-client-address').value.trim(),
+        pricePerCut:     parseFloat(document.getElementById('edit-client-price').value) || 0,
+        totalCuts:   parseInt(document.getElementById('edit-client-cuts').value) || 0,
+        mileageRoundtrip: parseFloat(document.getElementById('edit-client-mileage').value) || 0,
+        notes:       document.getElementById('edit-client-notes').value.trim(),
+      };
+
+      if (!payload.name || !payload.address) {
+        errorEl.textContent = 'Client Name and Address are required.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(API + '/clients/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Update failed');
+        closeEditClientModal();
+        await loadClients();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
       }
     }
 
@@ -489,9 +605,13 @@
       }
     }
 
-    // ── Backdrop close ────────────────────────────────────────────────────────
+    // ── Backdrop close for both modals ────────────────────────────────────────
     document.getElementById('add-client-modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeAddClientModal();
+    });
+
+    document.getElementById('edit-client-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeEditClientModal();
     });
 
     // ── Boot ───────────────────────────────────────────────────────────────────

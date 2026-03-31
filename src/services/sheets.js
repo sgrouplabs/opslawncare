@@ -127,6 +127,31 @@ async function addClients(clientsArray) {
   return clientsArray.map(c => ({ id: uuidv4(), ...c }));
 }
 
+// Update an existing client row by ID
+async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes }) {
+  const rowNum = await findRowById('Clients!A:A', id);
+  if (!rowNum) throw new Error('Client not found: ' + id);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Clients!A${rowNum}:G${rowNum}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes || '']] },
+  });
+  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes };
+}
+
+// Delete client row by ID
+async function deleteClient(id) {
+  const rowNum = await findRowById('Clients!A:A', id);
+  if (!rowNum) throw new Error('Client not found: ' + id);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Clients!A${rowNum}:G${rowNum}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [['', '', '', '', '', '', '']] },
+  });
+}
+
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
 async function getExpenses() {
@@ -262,6 +287,8 @@ module.exports = {
   getExpenses,
   addExpense,
   addClients,
+  updateClient,
+  deleteClient,
   getEmployees,
   upsertEmployee,
   deleteEmployee,

@@ -216,6 +216,25 @@ module.exports = {
     MOCK_EXPENSES.push(expense);
     return expense;
   },
+  addClients: async (clientsArray) => {
+    const added = clientsArray.map(c => {
+      const newClient = { id: 'client-' + Date.now() + Math.random().toString(36).slice(2), ...c };
+      MOCK_CLIENTS.push(newClient);
+      return newClient;
+    });
+    return added;
+  },
+  updateClient: async (id, data) => {
+    const idx = MOCK_CLIENTS.findIndex(c => c.id === id);
+    if (idx < 0) throw new Error('Client not found: ' + id);
+    MOCK_CLIENTS[idx] = { ...MOCK_CLIENTS[idx], ...data };
+    return MOCK_CLIENTS[idx];
+  },
+  deleteClient: async (id) => {
+    const idx = MOCK_CLIENTS.findIndex(c => c.id === id);
+    if (idx < 0) throw new Error('Client not found: ' + id);
+    MOCK_CLIENTS.splice(idx, 1);
+  },
   getEmployees: async () => getEmployees(),
   upsertEmployee: async (data) => upsertEmployee(data),
   deleteEmployee: async (id) => {

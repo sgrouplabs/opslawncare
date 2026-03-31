@@ -31,6 +31,23 @@ router.get('/clients/:id', async (req, res) => {
   }
 });
 
+// PUT /api/clients/:id — update an existing client row
+router.put('/clients/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes } = req.body;
+  if (!name || !address) {
+    return res.status(400).json({ error: 'Missing required fields: name, address', code: 'MISSING_FIELDS' });
+  }
+  try {
+    const updated = await sheets.updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes });
+    console.log('[API] PUT /clients/' + id + ' → ok');
+    res.json({ success: true, client: updated });
+  } catch (err) {
+    console.error('[API] PUT /clients error:', err.message);
+    res.status(500).json({ error: err.message, code: 'CLIENT_UPDATE_ERROR' });
+  }
+});
+
 router.post('/clients/bulk', async (req, res) => {
   const { clients } = req.body;
   if (!Array.isArray(clients) || clients.length === 0) {
@@ -42,6 +59,18 @@ router.post('/clients/bulk', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to add clients', code: 'CLIENTS_ADD_ERROR' });
+  }
+});
+
+// DELETE /api/clients/:id — remove client
+router.delete('/clients/:id', async (req, res) => {
+  try {
+    await sheets.deleteClient(req.params.id);
+    console.log('[API] DELETE /clients/' + req.params.id + ' → ok');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[API] DELETE /clients error:', err.message);
+    res.status(500).json({ error: 'Failed to delete client', code: 'CLIENT_DELETE_ERROR' });
   }
 });
 
