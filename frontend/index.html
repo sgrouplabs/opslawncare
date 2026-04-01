@@ -442,27 +442,49 @@
       html: '<div style="width:14px;height:14px;background:#39FF14;border-radius:50%;border:2px solid #0f1117;box-shadow:0 0 10px #39FF14,0 0 20px rgba(57,255,20,0.5);"></div>'
     });
 
-    let clientMarkers = [];
+    // Single LayerGroup holds all client markers — cleared and redrawn on every update
+    const markerLayer = L.layerGroup().addTo(map);
 
-    async function plotClients(clients) {
-      clientMarkers.forEach(m => map.removeLayer(m));
-      clientMarkers = [];
-      if (!clients || !clients.length) return;
+    /**
+     * Clears existing markers and re-plots all clients from the provided array.
+     * Geocoding is rate-limited via the shared GEOCODE_QUEUE (1100 ms between calls).
+     */
+    async function updateMapMarkers(clients) {
+      // Step 1 — clear all existing markers from the layer group
+      markerLayer.clearLayers();
+
+      if (!clients || clients.length === 0) {
+        map.setView([34.5034, -82.6501], 12);
+        console.log('[map] no clients to plot');
+        return;
+      }
+
+      // Step 2 — geocode all addresses (queue handles rate-limiting)
       const coords = await Promise.all(clients.map(c => geocodeAddress(c.address)));
-      const pairs  = clients.map((c, i) => ({ c, coord: coords[i] })).filter(p => p.coord);
-      pairs.forEach(({ c, coord }) => {
-        const m = L.marker([coord.lat, coord.lon], { icon: neonIcon }).addTo(map);
-        m.bindPopup(`<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ${c.address}</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts</p></div>`);
-        clientMarkers.push(m);
-      });
-      if (clientMarkers.length > 0) {
-        const g = L.featureGroup(clientMarkers);
-        map.fitBounds(g.getBounds().pad(0.15));
+
+      // Step 3 — add valid markers to the layer group
+      let plotted = 0;
+      for (let i = 0; i < clients.length; i++) {
+        const coord = coords[i];
+        if (!coord) continue;
+        const c = clients[i];
+        const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon })
+          .bindPopup(`<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">${c.name}</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ${c.address}</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>${usd(c.pricePerCut)}</strong> / cut &nbsp;·&nbsp; ${c.totalCuts || 0} cuts</p></div>`);
+        markerLayer.addLayer(marker);
+        plotted++;
+      }
+
+      // Step 4 — fit map bounds to all plotted markers
+      if (plotted > 0) {
+        map.fitBounds(markerLayer.getBounds().pad(0.15));
       } else {
         map.setView([34.5034, -82.6501], 12);
       }
-      console.log('[map] ' + clientMarkers.length + '/' + clients.length + ' clients plotted');
+      console.log('[map] ' + plotted + '/' + clients.length + ' clients plotted');
     }
+
+    // Backwards-compatible alias
+    const plotClients = updateMapMarkers;
 
     // ── Dashboard Load ────────────────────────────────────────────────────
 
@@ -515,7 +537,7 @@
         document.getElementById('client-table').innerHTML = clientList.length
           ? clientList.map(c => `<tr class="hover:bg-[#39FF14]/5 transition">
               <td class="px-4 py-3 font-medium text-gray-100 text-sm">${c.name}</td>
-              <td class="px-4 py-3 text-gray-400 text-xs">${c.address}</td>
+              <td class="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">${c.address}</td>
               <td class="px-4 py-3 text-neon font-semibold text-sm">${usd(c.pricePerCut)}</td>
               <td class="px-4 py-3 text-gray-300 text-sm">${c.totalCuts || 0}</td>
               <td class="px-4 py-3 text-gray-400 text-sm">${c.mileageRoundtrip} mi</td>
