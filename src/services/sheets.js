@@ -45,22 +45,52 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Haversine fallback — straight-line distance when OSRM is unavailable
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
 async function getMileage(fromAddress, toAddress) {
+  if (!fromAddress || !toAddress) return 0;
   try {
-    const [from, to] = await Promise.all([
-      geocodeAddress(fromAddress),
-      geocodeAddress(toAddress),
-    ]);
-    await sleep(1100); // rate-limit between the two Nominatim calls
+    // Geocode sequentially with rate-limit sleep between calls (Nominatim max 1 req/s)
+    const from = await geocodeAddress(fromAddress);
+    await sleep(1100);
+    const to   = await geocodeAddress(toAddress);
     if (!from || !to) return 0;
+
+    // Try OSRM driving route first
     const url = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error('OSRM HTTP ' + res.status);
     const data = await res.json();
-    if (!data.routes || data.routes.length === 0) return 0;
-    const meters = data.routes[0].distance;
-    return Math.round(meters * 0.000621371 * 10) / 10;
+    if (data.routes && data.routes.length > 0) {
+      const meters = data.routes[0].distance;
+      return Math.round(meters * 0.000621371 * 10) / 10;
+    }
+    // No route found — fall back to Haversine straight-line
+    const miles = haversineMiles(from.lat, from.lon, to.lat, to.lon);
+    console.warn('[sheets] OSRM returned no route; using Haversine fallback:', miles, 'mi');
+    return miles;
   } catch (err) {
-    console.error('[sheets] getMileage error:', err.message);
+    // OSRM or network error — try Haversine with whatever geocode results we have cached
+    console.warn('[sheets] getMileage error, attempting Haversine fallback:', err.message);
+    try {
+      const from = await geocodeAddress(fromAddress);
+      const to   = await geocodeAddress(toAddress);
+      if (from && to) {
+        const miles = haversineMiles(from.lat, from.lon, to.lat, to.lon);
+        console.warn('[sheets] Haversine fallback:', miles, 'mi');
+        return miles;
+      }
+    } catch (_) {}
     return 0;
   }
 }

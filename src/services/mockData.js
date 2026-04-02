@@ -256,4 +256,7 @@ module.exports = {
   getDashboardSummary,
   getProfitMargins,
   getOptimizedRoute,
+
+  // Stub for mileage calculation — OSRM/Haversine only available in live mode
+  getMileage: async () => 0,
 };

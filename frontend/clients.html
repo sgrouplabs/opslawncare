@@ -554,8 +554,10 @@
 
     async function submitClients(e) {
       e.preventDefault();
-      const errorEl = document.getElementById('add-client-error');
-      const successEl = document.getElementById('add-client-success');
+      const errorEl    = document.getElementById('add-client-error');
+      const successEl  = document.getElementById('add-client-success');
+      const submitBtn  = e.target.querySelector('[type="submit"]');
+
       errorEl.classList.add('hidden');
       successEl.classList.add('hidden');
 
@@ -563,11 +565,11 @@
       const clients = [];
 
       for (const row of allRows) {
-        const name = row.querySelector('[name="client_name"]').value.trim();
-        const address = row.querySelector('[name="client_address"]').value.trim();
+        const name        = row.querySelector('[name="client_name"]').value.trim();
+        const address     = row.querySelector('[name="client_address"]').value.trim();
         const pricePerCut = parseFloat(row.querySelector('[name="price_per_cut"]').value) || 0;
-        const totalCuts = parseInt(row.querySelector('[name="total_cuts"]').value) || 0;
-        const notes = row.querySelector('[name="client_notes"]').value.trim();
+        const totalCuts  = parseInt(row.querySelector('[name="total_cuts"]').value) || 0;
+        const notes       = row.querySelector('[name="client_notes"]').value.trim();
 
         if (!name || !address) {
           errorEl.textContent = 'Client Name and Address are required for all entries.';
@@ -578,25 +580,44 @@
         clients.push({ name, address, pricePerCut, totalCuts, notes });
       }
 
+      // ── Loading state — prevent double-submit while mileage is being calculated ──
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Calculating Route...';
+      errorEl.classList.add('hidden');
+
       try {
         const res = await fetch(API + '/clients/bulk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clients }),
         });
+        const data = await res.json();
+
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to add clients');
+          throw new Error(data.error || 'Failed to add clients');
         }
-        successEl.textContent = `Successfully added ${clients.length} client(s)!`;
+
+        // Warn if any client had mileage = 0 (geocoding or routing failed)
+        const zeroMileage = (data.clients || clients).filter(c => !c.mileageRoundtrip);
+        if (zeroMileage.length > 0) {
+          const names = zeroMileage.map(c => c.name).join(', ');
+          alert(`⚠️ Mileage could not be calculated for: ${names}.\n\nPlease check the address format and try again.`);
+        }
+
+        successEl.textContent = `Successfully added ${clients.length} client(s)! Mileage calculated automatically.`;
         successEl.classList.remove('hidden');
         setTimeout(() => {
           closeAddClientModal();
           loadClients();
-        }, 1200);
+        }, 1500);
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
+      } finally {
+        // Restore button regardless of outcome
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
       }
     }
 
