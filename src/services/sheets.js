@@ -137,13 +137,16 @@ async function deleteRow(rangePrefix, rowNumber, colCount) {
 
 function parseClients(rows) {
   if (!rows || rows.length < 2) return [];
-  return rows.slice(1).filter(r => r && r.length >= 6).map(r => ({
+  return rows.slice(1).filter(r => r && r.length >= 2).map(r => ({
     id:               r[0] || uuidv4(),
     name:            r[1] || '',
     address:         r[2] || '',
     pricePerCut:     parseFloat(r[3]) || 0,
     totalCuts:       parseInt(r[4]) || 0,
     mileageRoundtrip: parseFloat(r[5]) || 0,
+    notes:           r[6] || '',
+    cutFrequency:    (r[7] || '').trim() || '',
+    paymentMethod:   (r[8] || '').trim() || '',
   }));
 }
 
@@ -176,7 +179,7 @@ function parseEmployees(rows) {
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 async function getClients() {
-  return parseClients(await getSheetValues('Clients!A2:G'));
+  return parseClients(await getSheetValues('Clients!A2:I'));
 }
 
 async function getClientById(id) {
@@ -186,11 +189,15 @@ async function getClientById(id) {
 
 async function addClients(clientsArray) {
   const rows = clientsArray.map(c => [
-    uuidv4(), c.name, c.address, c.pricePerCut, c.totalCuts, c.mileageRoundtrip, c.notes || ''
+    uuidv4(), c.name, c.address, c.pricePerCut, c.totalCuts,
+    c.mileageRoundtrip || 0,
+    c.notes || '',
+    c.cutFrequency || '',
+    c.paymentMethod || '',
   ]);
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Clients!A2:G',
+    range: 'Clients!A2:I',
     valueInputOption: 'USER_ENTERED',
     resource: { values: rows },
   });
@@ -198,16 +205,16 @@ async function addClients(clientsArray) {
 }
 
 // Update an existing client row by ID
-async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes }) {
+async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod }) {
   const rowNum = await findRowById('Clients!A:A', id);
   if (!rowNum) throw new Error('Client not found: ' + id);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Clients!A${rowNum}:G${rowNum}`,
+    range: `Clients!A${rowNum}:I${rowNum}`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes || '']] },
+    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip || 0, notes || '', cutFrequency || '', paymentMethod || '']] },
   });
-  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes };
+  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod };
 }
 
 // Delete client row by ID
@@ -216,9 +223,9 @@ async function deleteClient(id) {
   if (!rowNum) throw new Error('Client not found: ' + id);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Clients!A${rowNum}:G${rowNum}`,
+    range: `Clients!A${rowNum}:I${rowNum}`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [['', '', '', '', '', '', '']] },
+    resource: { values: [['', '', '', '', '', '', '', '', '']] },
   });
 }
 

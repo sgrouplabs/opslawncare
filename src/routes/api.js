@@ -34,12 +34,12 @@ router.get('/clients/:id', async (req, res) => {
 // PUT /api/clients/:id — update an existing client row
 router.put('/clients/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes } = req.body;
+  const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod } = req.body;
   if (!name || !address) {
     return res.status(400).json({ error: 'Missing required fields: name, address', code: 'MISSING_FIELDS' });
   }
   try {
-    const updated = await sheets.updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes });
+    const updated = await sheets.updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod });
     console.log('[API] PUT /clients/' + id + ' → ok');
     res.json({ success: true, client: updated });
   } catch (err) {

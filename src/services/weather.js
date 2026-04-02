@@ -22,7 +22,8 @@ function fetch7DayForecast(lat = DEFAULT_LAT, lon = DEFAULT_LON) {
     return Promise.resolve(MOCK_FORECAST);
   }
   return new Promise((resolve, reject) => {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe%2FBerlin&forecast_days=7`;
+    // Open-Meteo: temperature_unit=fahrenheit, timezone=America/New_York (Anderson, SC)
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&temperature_unit=fahrenheit&timezone=America%2FNew_York&forecast_days=7`;
 
     https.get(url, (res) => {
       let data = '';

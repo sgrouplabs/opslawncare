@@ -229,7 +229,12 @@ module.exports = {
   },
   addClients: async (clientsArray) => {
     const added = clientsArray.map(c => {
-      const newClient = { id: 'client-' + Date.now() + Math.random().toString(36).slice(2), ...c };
+      const newClient = {
+        id: 'client-' + Date.now() + Math.random().toString(36).slice(2),
+        ...c,
+        cutFrequency: c.cutFrequency || '',
+        paymentMethod: c.paymentMethod || '',
+      };
       MOCK_CLIENTS.push(newClient);
       return newClient;
     });

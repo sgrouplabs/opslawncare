@@ -149,6 +149,8 @@
               <th class="px-4 py-3 cursor-pointer select-none hover:text-neon transition" onclick="tableSort('mileage')">
                 Mileage <i class="fa-solid fa-sort sort-icon ml-1"></i>
               </th>
+              <th class="px-4 py-3 text-gray-400">Frequency</th>
+              <th class="px-4 py-3 text-gray-400">Payment</th>
               <th class="px-4 py-3 text-gray-400">Actions</th>
             </tr>
           </thead>
@@ -200,6 +202,29 @@
                   <label class="block text-sm font-medium text-gray-400 mb-1">Total Cuts</label>
                   <input type="number" name="total_cuts" min="0" required placeholder="0"
                     class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1">Cut Frequency</label>
+                  <select name="cut_frequency"
+                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                    <option value="">Select</option>
+                    <option>Weekly</option>
+                    <option>Bi-Weekly</option>
+                    <option>Monthly</option>
+                    <option>As Needed</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1">Payment Method</label>
+                  <select name="payment_method"
+                    class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                    <option value="">Select</option>
+                    <option>Card</option>
+                    <option>Cash</option>
+                    <option>Check</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -267,6 +292,30 @@
           <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
           <input type="number" name="mileage_roundtrip" id="edit-client-mileage" step="0.1" min="0" required placeholder="0.0"
             class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Cut Frequency</label>
+            <select name="cut_frequency" id="edit-client-frequency"
+              class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+              <option value="">Select</option>
+              <option>Weekly</option>
+              <option>Bi-Weekly</option>
+              <option>Monthly</option>
+              <option>As Needed</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Payment Method</label>
+            <select name="payment_method" id="edit-client-payment"
+              class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+              <option value="">Select</option>
+              <option>Card</option>
+              <option>Cash</option>
+              <option>Check</option>
+            </select>
+          </div>
         </div>
 
         <div>
@@ -347,6 +396,12 @@
             <td class="px-4 py-3.5 text-gray-300">${c.totalCuts || 0}</td>
             <td class="px-4 py-3.5 text-green-400 font-semibold">${usd(revenue)}</td>
             <td class="px-4 py-3.5 text-gray-400">${c.mileageRoundtrip || 0} mi</td>
+            <td class="px-4 py-3.5 text-xs">
+              ${c.cutFrequency ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800/40 text-xs font-medium">${c.cutFrequency}</span>` : '<span class="text-gray-600">—</span>'}
+            </td>
+            <td class="px-4 py-3.5 text-xs">
+              ${c.paymentMethod ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-800/40 text-xs font-medium">${c.paymentMethod}</span>` : '<span class="text-gray-600">—</span>'}
+            </td>
             <td class="px-4 py-3.5">
               <div class="flex items-center gap-2">
                 <!-- Edit button -->
@@ -433,6 +488,8 @@
       document.getElementById('edit-client-cuts').value = client.totalCuts ?? '';
       document.getElementById('edit-client-mileage').value = client.mileageRoundtrip ?? '';
       document.getElementById('edit-client-notes').value = client.notes || '';
+      document.getElementById('edit-client-frequency').value = client.cutFrequency || '';
+      document.getElementById('edit-client-payment').value = client.paymentMethod || '';
     }
 
     function closeEditClientModal() {
@@ -446,12 +503,14 @@
       errorEl.classList.add('hidden');
 
       const payload = {
-        name:        document.getElementById('edit-client-name').value.trim(),
-        address:     document.getElementById('edit-client-address').value.trim(),
-        pricePerCut:     parseFloat(document.getElementById('edit-client-price').value) || 0,
-        totalCuts:   parseInt(document.getElementById('edit-client-cuts').value) || 0,
+        name:           document.getElementById('edit-client-name').value.trim(),
+        address:        document.getElementById('edit-client-address').value.trim(),
+        pricePerCut:        parseFloat(document.getElementById('edit-client-price').value) || 0,
+        totalCuts:      parseInt(document.getElementById('edit-client-cuts').value) || 0,
         mileageRoundtrip: parseFloat(document.getElementById('edit-client-mileage').value) || 0,
-        notes:       document.getElementById('edit-client-notes').value.trim(),
+        notes:          document.getElementById('edit-client-notes').value.trim(),
+        cutFrequency:   document.getElementById('edit-client-frequency').value.trim(),
+        paymentMethod:  document.getElementById('edit-client-payment').value.trim(),
       };
 
       if (!payload.name || !payload.address) {
@@ -525,6 +584,29 @@
                   class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
               </div>
             </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Cut Frequency</label>
+                <select name="cut_frequency"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                  <option value="">Select</option>
+                  <option>Weekly</option>
+                  <option>Bi-Weekly</option>
+                  <option>Monthly</option>
+                  <option>As Needed</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Payment Method</label>
+                <select name="payment_method"
+                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                  <option value="">Select</option>
+                  <option>Card</option>
+                  <option>Cash</option>
+                  <option>Check</option>
+                </select>
+              </div>
+            </div>
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
               <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
@@ -577,7 +659,15 @@
           return;
         }
 
-        clients.push({ name, address, pricePerCut, totalCuts, notes });
+        clients.push({
+          name: name,
+          address: address,
+          pricePerCut: pricePerCut,
+          totalCuts: totalCuts,
+          notes: notes,
+          cutFrequency: row.querySelector('[name="cut_frequency"]').value.trim(),
+          paymentMethod: row.querySelector('[name="payment_method"]').value.trim(),
+        });
       }
 
       // ── Loading state — prevent double-submit while mileage is being calculated ──
