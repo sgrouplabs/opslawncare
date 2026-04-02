@@ -264,4 +264,8 @@ module.exports = {
 
   // Stub for mileage calculation — OSRM/Haversine only available in live mode
   getMileage: async () => 0,
+
+  // ── Schedule & Jobs ──────────────────────────────────────────────
+  getSchedule: async () => getEmployees(),           // same employee roster data
+  getJobs: async () => MOCK_JOBS,
 };

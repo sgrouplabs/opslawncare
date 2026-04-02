@@ -203,6 +203,30 @@ router.get('/dashboard/route', async (req, res) => {
   }
 });
 
+// ─── Schedule ─────────────────────────────────────────────────────────────────
+
+router.get('/schedule', async (req, res) => {
+  try {
+    const schedule = await sheets.getSchedule();
+    res.json({ schedule });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch schedule', code: 'SCHEDULE_FETCH_ERROR' });
+  }
+});
+
+// ─── Jobs ─────────────────────────────────────────────────────────────────────
+
+router.get('/jobs', async (req, res) => {
+  try {
+    const jobs = await sheets.getJobs();
+    // Sort ascending by date
+    jobs.sort((a, b) => new Date(a.date) - new Date(b.date));
+    res.json({ jobs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch jobs', code: 'JOBS_FETCH_ERROR' });
+  }
+});
+
 // ─── Weather ─────────────────────────────────────────────────────────────────
 
 router.get('/weather', async (req, res) => {
