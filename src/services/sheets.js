@@ -25,6 +25,46 @@ const auth = new google.auth.JWT(
 const sheets           = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID   = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
+// ─── Geocoding cache & mileage helper ────────────────────────────────────────
+
+const GEOCODE_CACHE = new Map();
+
+async function geocodeAddress(address) {
+  if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'BurtonLandscapeApp/1.0' } });
+  const data = await res.json();
+  if (!data || data.length === 0) return null;
+  const { lat, lon } = data[0];
+  const result = { lat: parseFloat(lat), lon: parseFloat(lon) };
+  GEOCODE_CACHE.set(address, result);
+  return result;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function getMileage(fromAddress, toAddress) {
+  try {
+    const [from, to] = await Promise.all([
+      geocodeAddress(fromAddress),
+      geocodeAddress(toAddress),
+    ]);
+    await sleep(1100); // rate-limit between the two Nominatim calls
+    if (!from || !to) return 0;
+    const url = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.routes || data.routes.length === 0) return 0;
+    const meters = data.routes[0].distance;
+    return Math.round(meters * 0.000621371 * 10) / 10;
+  } catch (err) {
+    console.error('[sheets] getMileage error:', err.message);
+    return 0;
+  }
+}
+
 // ─── Low-level sheet helpers ─────────────────────────────────────────────────
 
 async function getSheetValues(range) {
@@ -323,4 +363,5 @@ module.exports = {
   getDashboardSummary,
   getProfitMargins,
   getOptimizedRoute,
+  getMileage,
 };

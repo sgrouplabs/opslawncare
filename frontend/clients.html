@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ops Lawncare — Clients</title>
+  <title>Burton's Landscape — Clients</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -64,7 +64,7 @@
       <div class="flex items-center gap-3">
         <span class="text-2xl select-none" style="filter: drop-shadow(0 0 6px rgba(57,255,20,0.7));">🌿</span>
         <div>
-          <h1 class="text-lg font-bold text-neon tracking-wide">Ops Lawncare</h1>
+          <h1 class="text-lg font-bold text-neon tracking-wide">Burton's Landscape</h1>
           <p class="text-[10px] text-gray-500 uppercase tracking-widest -mt-0.5">Anderson, SC</p>
         </div>
       </div>
@@ -81,6 +81,9 @@
         </a>
         <a href="/expenses.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
           <i class="fa-solid fa-receipt"></i> <span class="hidden sm:inline">Expenses</span>
+        </a>
+        <a href="/revenue.html" class="text-gray-400 hover:text-neon transition px-3 py-2 rounded-lg hover:bg-[#2a2d3a]/50 flex items-center gap-2">
+          <i class="fa-solid fa-chart-line"></i> <span class="hidden sm:inline">Revenue</span>
         </a>
       </div>
     </div>
@@ -198,11 +201,6 @@
                   <input type="number" name="total_cuts" min="0" required placeholder="0"
                     class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
                 </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
-                <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
-                  class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
@@ -528,11 +526,6 @@
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Mileage Roundtrip (mi)</label>
-              <input type="number" name="mileage_roundtrip" step="0.1" min="0" required placeholder="0.0"
-                class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-            </div>
-            <div>
               <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
               <textarea name="client_notes" rows="2" placeholder="Gate code, dog in yard, etc."
                 class="w-full bg-[#1a1d27] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"></textarea>
@@ -574,7 +567,6 @@
         const address = row.querySelector('[name="client_address"]').value.trim();
         const pricePerCut = parseFloat(row.querySelector('[name="price_per_cut"]').value) || 0;
         const totalCuts = parseInt(row.querySelector('[name="total_cuts"]').value) || 0;
-        const mileageRoundtrip = parseFloat(row.querySelector('[name="mileage_roundtrip"]').value) || 0;
         const notes = row.querySelector('[name="client_notes"]').value.trim();
 
         if (!name || !address) {
@@ -583,7 +575,7 @@
           return;
         }
 
-        clients.push({ name, address, pricePerCut, totalCuts, mileageRoundtrip, notes });
+        clients.push({ name, address, pricePerCut, totalCuts, notes });
       }
 
       try {

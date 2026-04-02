@@ -54,6 +54,11 @@ router.post('/clients/bulk', async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid "clients" array', code: 'INVALID_REQUEST' });
   }
   try {
+    const BUSINESS_ADDRESS = '2703 Lane Ave, Anderson, SC 29621';
+    for (const client of clients) {
+      const mileage = await sheets.getMileage(BUSINESS_ADDRESS, client.address);
+      client.mileageRoundtrip = mileage;
+    }
     const added = await sheets.addClients(clients);
     res.status(201).json({ success: true, count: added.length, clients: added });
   } catch (err) {
