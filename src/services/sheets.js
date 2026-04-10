@@ -401,7 +401,9 @@ async function getJobs() {
 
 async function addJob({ clientName, date, status = 'Pending', address = '', service = 'Cut', notes = '' }) {
   const id = uuidv4();
-  await appendRow('Jobs!A2:G', [id, clientName, date, status, address, service, notes || '']);
+  const rowValues = [id, clientName, date, status, address, service, notes || ''];
+  console.log('[sheets] addJob → appending to Jobs!A2:G, values:', rowValues);
+  await appendRow('Jobs!A2:G', rowValues);
   return { id, clientName, date, status, address, service, notes };
 }
 

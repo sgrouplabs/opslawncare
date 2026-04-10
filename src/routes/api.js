@@ -245,10 +245,13 @@ router.get('/jobs', async (req, res) => {
 
 // POST /api/jobs — create a new job row
 router.post('/jobs', async (req, res) => {
+  console.log('[API] Received Job Data:', req.body);
+
   const { clientName, date, status, address, service, notes } = req.body;
   if (!clientName || !date) {
     return res.status(400).json({ error: 'Missing required fields: clientName, date', code: 'MISSING_FIELDS' });
   }
+
   try {
     const job = await sheets.addJob({
       clientName,
@@ -261,8 +264,10 @@ router.post('/jobs', async (req, res) => {
     console.log('[API] POST /jobs → created:', job.id);
     res.status(201).json({ job });
   } catch (err) {
-    console.error('[API] POST /jobs error:', err.message);
-    res.status(500).json({ error: 'Failed to add job', code: 'JOB_ADD_ERROR' });
+    // Surface the exact Sheets API error so we know why it failed
+    const detail = err.response?.data || err.message;
+    console.error('[API] POST /jobs → Google Sheets API Error:', detail);
+    res.status(500).json({ error: 'Failed to add job', detail, code: 'JOB_ADD_ERROR' });
   }
 });
 

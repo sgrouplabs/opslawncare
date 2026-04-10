@@ -777,11 +777,23 @@
           body: JSON.stringify({ clientName, date, status, address, service, notes }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error((data.error || '') + (data.code ? ' [' + data.code + ']' : ''));
+
+        if (!res.ok) {
+          // Surface the exact server/Sheets error to the user via alert
+          const serverMsg = data.detail || data.error || 'Unknown error';
+          const code      = data.code    ? ' [' + data.code + ']' : '';
+          alert('❌ Failed to save job:\n\n' + serverMsg + code + '\n\nCheck the server console for full details.');
+          errorEl.textContent = serverMsg + code;
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
         closeJobModal();
         await loadJobs();
       } catch (err) {
-        errorEl.textContent = err.message || 'Failed to schedule job.';
+        const msg = err.message || 'Failed to schedule job.';
+        alert('❌ Network error:\n\n' + msg + '\n\nCheck your connection and try again.');
+        errorEl.textContent = msg;
         errorEl.classList.remove('hidden');
       }
     }
