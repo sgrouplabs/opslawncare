@@ -136,8 +136,9 @@ async function deleteRow(rangePrefix, rowNumber, colCount) {
 // Guards against malformed/empty rows and extra columns.
 
 function parseClients(rows) {
-  if (!rows || rows.length < 2) return [];
-  return rows.slice(1).filter(r => r && r.length >= 2).map(r => ({
+  // Range is already Clients!A2:L — header is excluded; do NOT slice again
+  if (!rows || rows.length < 1) return [];
+  return rows.filter(r => r && r.length >= 2).map(r => ({
     id:               r[0] || uuidv4(),
     name:            r[1] || '',
     address:         r[2] || '',
@@ -156,8 +157,9 @@ function parseClients(rows) {
 }
 
 function parseExpenses(rows) {
-  if (!rows || rows.length < 2) return [];
-  return rows.slice(1).filter(r => r && r.length >= 5).map(r => ({
+  // Range is already Expenses!A2:E — header is excluded; do NOT slice again
+  if (!rows || rows.length < 1) return [];
+  return rows.filter(r => r && r.length >= 5).map(r => ({
     id:          r[0] || uuidv4(),
     category:    r[1] || '',
     amount:     parseFloat(r[2]) || 0,
@@ -168,8 +170,9 @@ function parseExpenses(rows) {
 
 // Employees — sheet columns: A=ID, B=Name, C=Days Per Week, D=Daily Pay, E=Assigned Days
 function parseEmployees(rows) {
-  if (!rows || rows.length < 2) return [];
-  return rows.slice(1).filter(r => r && r.length >= 5).map(r => ({
+  // Range is already Employees!A2:E — header is excluded; do NOT slice again
+  if (!rows || rows.length < 1) return [];
+  return rows.filter(r => r && r.length >= 5).map(r => ({
     id:          r[0] || uuidv4(),
     name:        r[1] || '',
     daysPerWeek: parseInt(r[2]) || 0,
@@ -382,8 +385,9 @@ async function getTotalWeeklyLabor() {
 
 // Sheet columns: A=ID, B=ClientName, C=Date, D=Status, E=Address, F=Service, G=Notes
 function parseJobs(rows) {
-  if (!rows || rows.length < 2) return [];
-  return rows.slice(1).filter(r => r && r.length >= 3).map(r => ({
+  // Range is already Jobs!A2:G — header is excluded; do NOT slice again
+  if (!rows || rows.length < 1) return [];
+  return rows.filter(r => r && r.length >= 3).map(r => ({
     id:         r[0] || uuidv4(),
     clientName: r[1] || '',
     date:       r[2] || '',
