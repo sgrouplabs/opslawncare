@@ -34,9 +34,19 @@
       border-radius: 0.5rem;
     }
     .btn-neon:hover { background: #4ade80; box-shadow: var(--neon-glow-strong); }
+    .btn-danger {
+      background: #ef4444;
+      color: #fff;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      border-radius: 0.5rem;
+    }
+    .btn-danger:hover { background: #dc2626; box-shadow: 0 0 16px rgba(239,68,68,0.5); }
+    .btn-danger:disabled { background: #7f1d1d; color: #991b1b; cursor: not-allowed; box-shadow: none; }
     .modal { display: none; }
     .modal.active { display: flex; }
     tbody tr:hover { background: rgba(57,255,20,0.05); }
+    tbody tr.selected { background: rgba(239,68,68,0.08); }
     .badge-green {
       background: rgba(57,255,20,0.15);
       color: var(--neon);
@@ -44,6 +54,7 @@
     }
     .summary-card { border-left: 3px solid transparent; transition: all 0.3s ease; }
     .summary-card:hover { border-left-color: var(--neon); }
+    input[type="checkbox"] { accent-color: var(--neon); width: 16px; height: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -89,8 +100,14 @@
         </h2>
         <p class="text-gray-500 text-sm mt-1">Full history, time-based summaries, and edit controls</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <span id="expense-count" class="badge-green px-3 py-1 rounded-full text-xs font-semibold">— expenses</span>
+        <!-- Bulk Delete Button (hidden by default) -->
+        <button id="bulk-delete-btn" onclick="openBulkDeleteModal()"
+          class="btn-danger px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md opacity-0 pointer-events-none transition-all duration-200">
+          <i class="fa-solid fa-trash-can"></i>
+          <span id="bulk-delete-label">Delete Selected</span>
+        </button>
         <button onclick="openAddExpenseModal()" class="btn-neon px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
           <i class="fa-solid fa-plus"></i> Add Expense
         </button>
@@ -99,7 +116,6 @@
 
     <!-- Time-Based Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <!-- Monthly -->
       <div class="card summary-card p-5">
         <div class="flex items-center justify-between mb-1">
           <p class="text-gray-500 text-xs uppercase tracking-wider" id="monthly-label">Monthly</p>
@@ -108,7 +124,6 @@
         <p class="text-2xl font-bold text-red-400" id="card-monthly">—</p>
         <p class="text-xs text-gray-500 mt-1" id="monthly-count">0 transactions</p>
       </div>
-      <!-- Quarterly -->
       <div class="card summary-card p-5">
         <div class="flex items-center justify-between mb-1">
           <p class="text-gray-500 text-xs uppercase tracking-wider" id="quarterly-label">Quarterly</p>
@@ -117,7 +132,6 @@
         <p class="text-2xl font-bold text-red-400" id="card-quarterly">—</p>
         <p class="text-xs text-gray-500 mt-1" id="quarterly-count">0 transactions</p>
       </div>
-      <!-- Yearly -->
       <div class="card summary-card p-5">
         <div class="flex items-center justify-between mb-1">
           <p class="text-gray-500 text-xs uppercase tracking-wider">Yearly</p>
@@ -138,6 +152,10 @@
         <table class="w-full text-sm text-left">
           <thead class="bg-[#12151e] text-gray-400 text-xs uppercase">
             <tr>
+              <!-- Checkbox column -->
+              <th class="px-4 py-3 w-10">
+                <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll()" title="Select all" class="cursor-pointer">
+              </th>
               <th class="px-4 py-3 text-gray-400">Date</th>
               <th class="px-4 py-3 text-gray-400">Category</th>
               <th class="px-4 py-3 text-gray-400">Description</th>
@@ -146,7 +164,7 @@
             </tr>
           </thead>
           <tbody id="expenses-tbody" class="divide-y divide-[#2a2d3a]">
-            <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">Loading expenses...</td></tr>
+            <tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">Loading expenses...</td></tr>
           </tbody>
         </table>
       </div>
@@ -170,6 +188,46 @@
     </div>
 
   </main>
+
+  <!-- ══════════════════════════════════════════
+       BULK DELETE CONFIRMATION MODAL
+  ══════════════════════════════════════════ -->
+  <div id="bulk-delete-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[9999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-red-800/50 shadow-2xl shadow-red-900/30">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-red-900/40 rounded-full flex items-center justify-center">
+            <i class="fa-solid fa-triangle-exclamation text-red-400 text-lg"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-100">Delete Expenses</h3>
+        </div>
+        <button onclick="closeBulkDeleteModal()" class="text-gray-500 hover:text-gray-300 text-lg transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <p class="text-gray-300 text-sm leading-relaxed mb-1">
+        Are you sure you want to delete
+        <strong id="bulk-delete-count" class="text-red-400">0</strong>
+        selected expense<span id="bulk-plural">s</span>?
+      </p>
+      <p class="text-gray-500 text-xs mb-6">This action cannot be undone.</p>
+
+      <div id="bulk-delete-error" class="hidden text-red-400 text-sm bg-red-900/20 border border-red-800/40 rounded-lg px-4 py-2.5 mb-4"></div>
+
+      <div class="flex gap-3">
+        <button onclick="closeBulkDeleteModal()"
+          class="flex-1 py-2.5 rounded-lg border border-[#2a2d3a] text-gray-400 hover:text-gray-100 hover:border-gray-500 transition text-sm font-medium">
+          Cancel
+        </button>
+        <button onclick="confirmBulkDelete()"
+          id="bulk-confirm-btn"
+          class="flex-1 btn-danger py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+          <i class="fa-solid fa-trash-can"></i> Confirm Delete
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Add Expense Modal -->
   <div id="add-expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
@@ -261,9 +319,10 @@
     const API = window.location.origin + '/api';
     const ROWS_PER_PAGE = 10;
 
-    let allExpenses = [];
+    let allExpenses  = [];
     let currentPage  = 1;
     let totalPages   = 1;
+    let selectedIds  = new Set();   // tracks checkbox state by expense.id
 
     // ── Clock ───────────────────────────────────────────────────────────────
     function updateClock() {
@@ -277,9 +336,9 @@
     const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
     // ── Date helpers ───────────────────────────────────────────────────────
-    function getYear()  { return new Date().getFullYear(); }
-    function getMonth() { return new Date().getMonth(); }   // 0-indexed
-    function getQuarter() { return Math.floor(new Date().getMonth() / 3) + 1; } // 1–4
+    function getYear()    { return new Date().getFullYear(); }
+    function getMonth()   { return new Date().getMonth(); }
+    function getQuarter() { return Math.floor(new Date().getMonth() / 3) + 1; }
 
     function isInCurrentMonth(exp) {
       const d = new Date(exp.date);
@@ -300,6 +359,10 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
         allExpenses = (data.expenses || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Clear selection on reload
+        selectedIds.clear();
+        updateBulkDeleteButton();
+        document.getElementById('select-all-checkbox').checked = false;
         document.getElementById('expense-count').textContent =
           `${allExpenses.length} expense${allExpenses.length !== 1 ? 's' : ''}`;
         renderSummaryCards();
@@ -307,36 +370,32 @@
       } catch (err) {
         console.error('[expenses] loadExpenses error:', err);
         document.getElementById('expenses-tbody').innerHTML =
-          `<tr><td colspan="5" class="px-4 py-10 text-center text-red-400">Failed to load: ${err.message}</td></tr>`;
+          `<tr><td colspan="6" class="px-4 py-10 text-center text-red-400">Failed to load: ${err.message}</td></tr>`;
       }
     }
 
     // ── Summary Cards ───────────────────────────────────────────────────────
     function renderSummaryCards() {
-      const monthly   = allExpenses.filter(isInCurrentMonth);
-      const quarterly = allExpenses.filter(isInCurrentQuarter);
-      const yearly    = allExpenses.filter(isInCurrentYear);
-
-      const monthNames = ['January','February','March','April','May','June',
-                          'July','August','September','October','November','December'];
+      const monthly    = allExpenses.filter(isInCurrentMonth);
+      const quarterly  = allExpenses.filter(isInCurrentQuarter);
+      const yearly     = allExpenses.filter(isInCurrentYear);
+      const monthNames  = ['January','February','March','April','May','June',
+                           'July','August','September','October','November','December'];
       const quarterLabels = ['Q1','Q2','Q3','Q4'];
 
-      const q = getQuarter();
-      document.getElementById('monthly-label').textContent = monthNames[getMonth()] + ' ' + getYear();
-      document.getElementById('quarterly-label').textContent = quarterLabels[q - 1] + ' ' + getYear();
-
-      document.getElementById('card-monthly').textContent   = usd(monthly.reduce((s, e) => s + e.amount, 0));
+      document.getElementById('monthly-label').textContent   = monthNames[getMonth()] + ' ' + getYear();
+      document.getElementById('quarterly-label').textContent = quarterLabels[getQuarter() - 1] + ' ' + getYear();
+      document.getElementById('card-monthly').textContent    = usd(monthly.reduce((s, e) => s + e.amount, 0));
       document.getElementById('card-quarterly').textContent  = usd(quarterly.reduce((s, e) => s + e.amount, 0));
       document.getElementById('card-yearly').textContent     = usd(yearly.reduce((s, e) => s + e.amount, 0));
-
       document.getElementById('monthly-count').textContent   = monthly.length   + ' transaction' + (monthly.length   !== 1 ? 's' : '');
       document.getElementById('quarterly-count').textContent = quarterly.length + ' transaction' + (quarterly.length !== 1 ? 's' : '');
       document.getElementById('yearly-count').textContent    = yearly.length    + ' transaction' + (yearly.length    !== 1 ? 's' : '');
     }
 
-    // ── Pagination ───────────────────────────────────────────────────────────
+    // ── Pagination ─────────────────────────────────────────────────────────
     function getPageSlice(page) {
-      totalPages = Math.max(1, Math.ceil(allExpenses.length / ROWS_PER_PAGE));
+      totalPages  = Math.max(1, Math.ceil(allExpenses.length / ROWS_PER_PAGE));
       currentPage = Math.min(page, totalPages);
       const start = (currentPage - 1) * ROWS_PER_PAGE;
       return allExpenses.slice(start, start + ROWS_PER_PAGE);
@@ -347,48 +406,49 @@
       const tbody = document.getElementById('expenses-tbody');
 
       if (!allExpenses.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No expenses found. Add your first one above!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">No expenses found. Add your first one above!</td></tr>';
       } else if (!slice.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No expenses on this page.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-gray-500">No expenses on this page.</td></tr>';
       } else {
-        tbody.innerHTML = slice.map(e => `
-          <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50">
-            <td class="px-4 py-3.5 text-gray-300 text-sm">${e.date}</td>
+        tbody.innerHTML = slice.map(exp => {
+          const checked = selectedIds.has(exp.id) ? 'checked' : '';
+          const rowClass = selectedIds.has(exp.id) ? 'selected' : '';
+          return `
+          <tr class="hover:bg-[#39FF14]/5 transition border-b border-[#2a2d3a]/50 ${rowClass}" data-id="${exp.id}">
+            <td class="px-4 py-3.5">
+              <input type="checkbox" onclick="toggleRowSelection('${exp.id}')"
+                id="cb-${exp.id}" ${checked} class="cursor-pointer">
+            </td>
+            <td class="px-4 py-3.5 text-gray-300 text-sm">${exp.date}</td>
             <td class="px-4 py-3.5">
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-900/30 text-red-300 border border-red-800/40">
-                ${e.category}
+                ${exp.category}
               </span>
             </td>
-            <td class="px-4 py-3.5 text-gray-400 text-sm max-w-xs truncate">${e.description || '—'}</td>
-            <td class="px-4 py-3.5 text-red-400 font-semibold text-right">${usd(e.amount)}</td>
+            <td class="px-4 py-3.5 text-gray-400 text-sm max-w-xs truncate">${exp.description || '—'}</td>
+            <td class="px-4 py-3.5 text-red-400 font-semibold text-right">${usd(exp.amount)}</td>
             <td class="px-4 py-3.5 text-center">
               <div class="flex items-center justify-center gap-2">
-                <button onclick='openEditExpenseModal(${JSON.stringify(e).replace(/'/g, "&#39;")})'
+                <button onclick='openEditExpenseModal(${JSON.stringify(exp).replace(/'/g, "&#39;")})'
                   class="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded border border-blue-900/50 hover:border-blue-700 transition"
                   title="Edit">
                   <i class="fa-solid fa-pencil"></i>
                 </button>
-                <button onclick="deleteExpense('${e.id}')"
+                <button onclick="deleteExpense('${exp.id}')"
                   class="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-900/50 hover:border-red-700 transition"
                   title="Delete">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
             </td>
-          </tr>`).join('');
+          </tr>`;
+        }).join('');
       }
 
-      // Range text
       const start = allExpenses.length === 0 ? 0 : (currentPage - 1) * ROWS_PER_PAGE + 1;
       const end   = Math.min(currentPage * ROWS_PER_PAGE, allExpenses.length);
-      document.getElementById('table-range').textContent =
-        `Showing ${start}–${end} of ${allExpenses.length}`;
-
-      // Pagination info
-      document.getElementById('pagination-info').textContent =
-        `Page ${currentPage} of ${totalPages}`;
-
-      // Button states
+      document.getElementById('table-range').textContent = `Showing ${start}–${end} of ${allExpenses.length}`;
+      document.getElementById('pagination-info').textContent = `Page ${currentPage} of ${totalPages}`;
       document.getElementById('btn-prev').disabled = currentPage <= 1;
       document.getElementById('btn-next').disabled = currentPage >= totalPages;
     }
@@ -396,7 +456,98 @@
     function prevPage() { renderPage(currentPage - 1); }
     function nextPage() { renderPage(currentPage + 1); }
 
-    // ── Delete ───────────────────────────────────────────────────────────────
+    // ── Bulk Selection ─────────────────────────────────────────────────────
+    function toggleRowSelection(id) {
+      if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+      } else {
+        selectedIds.add(id);
+      }
+      updateBulkDeleteButton();
+      // Keep checkbox in sync with state (important for select-all edge cases)
+      const cb = document.getElementById('cb-' + id);
+      if (cb) cb.checked = selectedIds.has(id);
+    }
+
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('select-all-checkbox');
+      if (selectAll.checked) {
+        // Select all visible rows on current page
+        getPageSlice(currentPage).forEach(exp => selectedIds.add(exp.id));
+      } else {
+        // Deselect all visible rows
+        getPageSlice(currentPage).forEach(exp => selectedIds.delete(exp.id));
+      }
+      // Re-render checkboxes to match state
+      getPageSlice(currentPage).forEach(exp => {
+        const cb = document.getElementById('cb-' + exp.id);
+        if (cb) cb.checked = selectedIds.has(exp.id);
+      });
+      updateBulkDeleteButton();
+    }
+
+    function updateBulkDeleteButton() {
+      const btn    = document.getElementById('bulk-delete-btn');
+      const label  = document.getElementById('bulk-delete-label');
+      const count  = selectedIds.size;
+      if (count === 0) {
+        btn.classList.add('opacity-0', 'pointer-events-none');
+        btn.classList.remove('opacity-100', 'pointer-events-auto');
+      } else {
+        btn.classList.remove('opacity-0', 'pointer-events-none');
+        btn.classList.add('opacity-100', 'pointer-events-auto');
+        label.textContent = count === 1 ? 'Delete 1 Selected' : `Delete ${count} Selected`;
+      }
+    }
+
+    // ── Bulk Delete Modal ──────────────────────────────────────────────────
+    function openBulkDeleteModal() {
+      const count = selectedIds.size;
+      document.getElementById('bulk-delete-count').textContent = count;
+      document.getElementById('bulk-plural').textContent = count === 1 ? '' : 's';
+      document.getElementById('bulk-delete-error').classList.add('hidden');
+      document.getElementById('bulk-confirm-btn').disabled = false;
+      document.getElementById('bulk-confirm-btn').innerHTML = '<i class="fa-solid fa-trash-can"></i> Confirm Delete';
+      document.getElementById('bulk-delete-modal').classList.add('active');
+    }
+
+    function closeBulkDeleteModal() {
+      document.getElementById('bulk-delete-modal').classList.remove('active');
+    }
+
+    async function confirmBulkDelete() {
+      const ids = Array.from(selectedIds);
+      if (!ids.length) return;
+
+      const btn = document.getElementById('bulk-confirm-btn');
+      const errEl = document.getElementById('bulk-delete-error');
+      errEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting…';
+
+      try {
+        const res = await fetch(API + '/expenses/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error((data.error || '') + (data.code ? ' [' + data.code + ']' : ''));
+
+        selectedIds.clear();
+        document.getElementById('select-all-checkbox').checked = false;
+        closeBulkDeleteModal();
+        await loadExpenses();
+
+      } catch (err) {
+        errEl.textContent = err.message || 'Bulk delete failed.';
+        errEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Confirm Delete';
+      }
+    }
+
+    // ── Delete single ──────────────────────────────────────────────────────
     async function deleteExpense(id) {
       if (!confirm('Delete this expense? This cannot be undone.')) return;
       try {
@@ -411,7 +562,7 @@
       }
     }
 
-    // ── Add Expense Modal ────────────────────────────────────────────────────
+    // ── Add Expense Modal ──────────────────────────────────────────────────
     function openAddExpenseModal() {
       document.getElementById('add-expense-modal').classList.add('active');
       document.getElementById('add-expense-error').classList.add('hidden');
@@ -429,8 +580,8 @@
       errorEl.classList.add('hidden');
       const payload = {
         category:    document.getElementById('add-expense-category').value,
-        amount:      parseFloat(document.getElementById('add-expense-amount').value) || 0,
-        date:        document.getElementById('add-expense-date').value,
+        amount:     parseFloat(document.getElementById('add-expense-amount').value) || 0,
+        date:       document.getElementById('add-expense-date').value,
         description: document.getElementById('add-expense-description').value.trim(),
       };
       if (!payload.category || !payload.amount || !payload.date) {
@@ -454,15 +605,15 @@
       }
     }
 
-    // ── Edit Expense Modal ──────────────────────────────────────────────────
+    // ── Edit Expense Modal ─────────────────────────────────────────────────
     function openEditExpenseModal(expense) {
       document.getElementById('edit-expense-modal').classList.add('active');
       document.getElementById('edit-expense-error').classList.add('hidden');
       document.getElementById('edit-expense-id').value          = expense.id || '';
       document.getElementById('edit-expense-category').value     = expense.category || '';
-      document.getElementById('edit-expense-amount').value       = expense.amount ?? '';
+      document.getElementById('edit-expense-amount').value      = expense.amount ?? '';
       document.getElementById('edit-expense-date').value        = expense.date || '';
-      document.getElementById('edit-expense-description').value  = expense.description || '';
+      document.getElementById('edit-expense-description').value = expense.description || '';
     }
 
     function closeEditExpenseModal() {
@@ -471,13 +622,13 @@
 
     async function submitEditExpense(e) {
       e.preventDefault();
-      const id       = document.getElementById('edit-expense-id').value;
-      const errorEl  = document.getElementById('edit-expense-error');
+      const id      = document.getElementById('edit-expense-id').value;
+      const errorEl = document.getElementById('edit-expense-error');
       errorEl.classList.add('hidden');
       const payload = {
         category:    document.getElementById('edit-expense-category').value,
-        amount:      parseFloat(document.getElementById('edit-expense-amount').value) || 0,
-        date:        document.getElementById('edit-expense-date').value,
+        amount:     parseFloat(document.getElementById('edit-expense-amount').value) || 0,
+        date:       document.getElementById('edit-expense-date').value,
         description: document.getElementById('edit-expense-description').value.trim(),
       };
       if (!payload.category || !payload.amount || !payload.date) {
@@ -501,17 +652,18 @@
       }
     }
 
-    // ── Backdrop close ───────────────────────────────────────────────────────
-    ['add-expense-modal', 'edit-expense-modal'].forEach(id => {
+    // ── Backdrop close ─────────────────────────────────────────────────────
+    ['add-expense-modal', 'edit-expense-modal', 'bulk-delete-modal'].forEach(id => {
       document.getElementById(id).addEventListener('click', e => {
         if (e.target === e.currentTarget) {
-          if (id === 'add-expense-modal') closeAddExpenseModal();
-          else closeEditExpenseModal();
+          if (id === 'add-expense-modal')    closeAddExpenseModal();
+          else if (id === 'edit-expense-modal') closeEditExpenseModal();
+          else if (id === 'bulk-delete-modal') closeBulkDeleteModal();
         }
       });
     });
 
-    // ── Boot ─────────────────────────────────────────────────────────────────
+    // ── Boot ───────────────────────────────────────────────────────────────
     loadExpenses();
   </script>
 </body>

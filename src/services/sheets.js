@@ -254,7 +254,7 @@ async function updateExpense(id, { category, amount, date, description }) {
   return { id, category, amount, date, description };
 }
 
-// Delete expense row by ID
+// Delete expense row by ID (single)
 async function deleteExpense(id) {
   const rowNum = await findRowById('Expenses!A:A', id);
   if (!rowNum) throw new Error('Expense not found: ' + id);
@@ -264,6 +264,58 @@ async function deleteExpense(id) {
     valueInputOption: 'USER_ENTERED',
     resource: { values: [['', '', '', '', '']] },
   });
+}
+
+// Delete multiple expense rows by id, sorted descending by row number
+// to prevent sheet-index shifting mid-operation.
+// Uses spreadsheets.batchUpdate with deleteDimension requests.
+async function deleteExpensesByIds(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+
+  // Get the sheetId for the Expenses tab
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const sheet = meta.data.sheets.find(s => s.properties.title === 'Expenses');
+  if (!sheet) throw new Error('Expenses sheet not found');
+  const sheetId = sheet.properties.sheetId;
+
+  // Resolve each id → its sheet row number
+  const allRows = await getSheetValues('Expenses!A2:A');
+  const idToRow = new Map();
+  for (let i = 0; i < allRows.length; i++) {
+    if (ids.includes(allRows[i][0])) {
+      // sheet row = data-index + 2 (1-indexed; row 1 is header, data starts at row 2)
+      idToRow.set(allRows[i][0], i + 2);
+    }
+  }
+
+  // Collect valid row numbers and sort DESCENDING (highest first)
+  const rowNums = [];
+  for (const id of ids) {
+    if (idToRow.has(id)) rowNums.push(idToRow.get(id));
+  }
+  rowNums.sort((a, b) => b - a);
+
+  // Build batch deleteDimension requests — one per row, in descending order
+  const requests = rowNums.map(rowNum => ({
+    deleteDimension: {
+      range: {
+        sheetId,
+        dimension: 'ROWS',
+        startIndex: rowNum - 1,  // Sheets API is 0-indexed
+        endIndex: rowNum,         // exclusive end
+      },
+    },
+  }));
+
+  if (requests.length === 0) return [];
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    resource: { requests },
+  });
+
+  console.log('[sheets] deleteExpensesByIds: deleted sheet rows', rowNums.join(', '));
+  return rowNums.map(String);
 }
 
 // ─── Employees ────────────────────────────────────────────────────────────────
@@ -390,6 +442,7 @@ module.exports = {
   addExpense,
   updateExpense,
   deleteExpense,
+  deleteExpensesByIds,
   addClients,
   updateClient,
   deleteClient,

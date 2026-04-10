@@ -31,7 +31,6 @@ router.get('/clients/:id', async (req, res) => {
   }
 });
 
-// PUT /api/clients/:id — update an existing client row
 router.put('/clients/:id', async (req, res) => {
   const { id } = req.params;
   const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod } = req.body;
@@ -67,7 +66,6 @@ router.post('/clients/bulk', async (req, res) => {
   }
 });
 
-// DELETE /api/clients/:id — remove client
 router.delete('/clients/:id', async (req, res) => {
   try {
     await sheets.deleteClient(req.params.id);
@@ -103,7 +101,6 @@ router.post('/expenses', async (req, res) => {
   }
 });
 
-// PUT /api/expenses/:id — update an existing expense row
 router.put('/expenses/:id', async (req, res) => {
   const { id } = req.params;
   const { category, amount, date, description } = req.body;
@@ -120,7 +117,6 @@ router.put('/expenses/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/expenses/:id — remove expense
 router.delete('/expenses/:id', async (req, res) => {
   try {
     await sheets.deleteExpense(req.params.id);
@@ -129,6 +125,23 @@ router.delete('/expenses/:id', async (req, res) => {
   } catch (err) {
     console.error('[API] DELETE /expenses error:', err.message);
     res.status(500).json({ error: 'Failed to delete expense', code: 'EXPENSE_DELETE_ERROR' });
+  }
+});
+
+// POST /api/expenses/bulk-delete — delete multiple expenses by id
+// ids are sorted descending by sheet row before deleting to prevent index shifting
+router.post('/expenses/bulk-delete', async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Missing or invalid "ids" array', code: 'INVALID_REQUEST' });
+  }
+  try {
+    const deleted = await sheets.deleteExpensesByIds(ids);
+    console.log('[API] POST /expenses/bulk-delete → deleted', deleted.length, 'rows');
+    res.json({ success: true, count: deleted.length });
+  } catch (err) {
+    console.error('[API] POST /expenses/bulk-delete error:', err.message);
+    res.status(500).json({ error: err.message, code: 'EXPENSE_BULK_DELETE_ERROR' });
   }
 });
 
@@ -219,7 +232,6 @@ router.get('/schedule', async (req, res) => {
 router.get('/jobs', async (req, res) => {
   try {
     const jobs = await sheets.getJobs();
-    // Sort ascending by date
     jobs.sort((a, b) => new Date(a.date) - new Date(b.date));
     res.json({ jobs });
   } catch (err) {
