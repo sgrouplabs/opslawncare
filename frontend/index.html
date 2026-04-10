@@ -151,9 +151,6 @@
               <button onclick="openAddJobModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md" title="Schedule a job">
                 <i class="fa-solid fa-plus"></i> Add Job
               </button>
-              <button onclick="openJobsWeekModal()" class="text-xs text-gray-500 hover:text-neon transition flex items-center gap-1">
-                See Week <i class="fa-solid fa-expand text-[10px]"></i>
-              </button>
             </div>
           </div>
           <div id="jobs-today-list">
@@ -161,7 +158,7 @@
           </div>
           <p id="jobs-today-empty" class="hidden text-center text-gray-600 text-sm py-4">No jobs scheduled for today.</p>
           <div class="mt-3 pt-3 border-t border-[#2a2d3a]/50 flex items-center justify-between">
-            <span class="text-xs text-gray-500" id="jobs-count-label">—</span>
+            <span class="text-xs text-gray-500" id="weekly-job-count">—</span>
             <button onclick="openJobsWeekModal()" class="text-xs text-orange-400 hover:text-neon transition">View full week ›</button>
           </div>
         </div>
@@ -621,19 +618,25 @@
 
     function renderTodayJobs() {
       const todayJobs = allJobs.filter(j => isToday(j.date));
-      const listEl  = document.getElementById('jobs-today-list');
-      const emptyEl = document.getElementById('jobs-today-empty');
-      const countEl = document.getElementById('jobs-count-label');
+      const weekJobs  = allJobs.filter(j => isThisWeek(j.date, 0));
+      const listEl   = document.getElementById('jobs-today-list');
+      const emptyEl  = document.getElementById('jobs-today-empty');
+      const weeklyEl = document.getElementById('weekly-job-count');
+
+      // Always show weekly count in footer
+      if (weekJobs.length === 0) {
+        weeklyEl.textContent = 'No jobs scheduled this week';
+      } else {
+        weeklyEl.textContent = `${weekJobs.length} job${weekJobs.length !== 1 ? 's' : ''} scheduled this week`;
+      }
 
       if (todayJobs.length === 0) {
         listEl.innerHTML = '';
         emptyEl.classList.remove('hidden');
-        countEl.textContent = 'No jobs today';
         return;
       }
 
       emptyEl.classList.add('hidden');
-      countEl.textContent = `${todayJobs.length} job${todayJobs.length !== 1 ? 's' : ''} today`;
       listEl.innerHTML = todayJobs.map(j => {
         const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Pending'];
         const si = STATUS_ICONS[j.status] || STATUS_ICONS['Pending'];
