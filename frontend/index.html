@@ -288,7 +288,7 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
       <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
-        <i class="fa-solid fa-calendar-plus text-orange-400"></i> Schedule Job
+        <i class="fa-solid fa-calendar-plus text-orange-400" id="job-modal-icon"></i> <span id="job-modal-title">Schedule Job</span>
       </h3>
 
       <!-- Client Dropdown -->
@@ -355,8 +355,8 @@
 
       <div id="job-error" class="text-red-400 text-sm hidden mb-3 bg-red-900/20 border border-red-800/40 rounded-lg px-4 py-2.5"></div>
 
-      <button onclick="submitJob()" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-check"></i> Schedule Job
+      <button onclick="submitJob()" id="job-submit-btn" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-check"></i> <span id="job-submit-label">Schedule Job</span>
       </button>
     </div>
   </div>
@@ -495,17 +495,25 @@
 
   <!-- Jobs Week Modal -->
   <div id="jobs-modal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-[9999]">
-    <div class="relative w-full max-w-[90vw] max-h-[85vh] mx-4 flex flex-col card border-[#2a2d3a] overflow-hidden">
+    <div class="relative w-full max-w-[96vw] max-h-[88vh] mx-4 flex flex-col card border-[#2a2d3a] overflow-hidden">
       <div class="flex items-center justify-between px-6 py-4 border-b border-[#2a2d3a] shrink-0">
         <h3 class="text-lg font-bold text-gray-100 flex items-center gap-2">
-          <i class="fa-solid fa-clipboard-list text-orange-400"></i> This Week's Jobs
+          <i class="fa-solid fa-calendar-grid text-orange-400"></i> This Week's Jobs
         </h3>
-        <button onclick="closeJobsWeekModal()" class="text-gray-400 hover:text-gray-100 text-2xl transition px-2">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="flex items-center gap-3">
+          <!-- Week navigation -->
+          <button onclick="shiftCalendarWeek(-1)" id="cal-prev-btn" class="text-gray-400 hover:text-neon text-sm px-2 py-1 rounded border border-[#2a2d3a] hover:border-neon/40 transition">‹ Prev</button>
+          <span class="text-xs text-gray-500 font-medium min-w-[120px] text-center" id="cal-week-label"></span>
+          <button onclick="shiftCalendarWeek(1)" id="cal-next-btn" class="text-gray-400 hover:text-neon text-sm px-2 py-1 rounded border border-[#2a2d3a] hover:border-neon/40 transition">Next ›</button>
+          <button onclick="closeJobsWeekModal()" class="text-gray-400 hover:text-gray-100 text-2xl transition px-2 ml-2">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
-      <div id="jobs-week-container" class="overflow-y-auto flex-1 px-6 py-4 space-y-5">
-        <div class="text-center text-gray-500 py-8">Loading...</div>
+      <!-- 7-column calendar grid -->
+      <div id="jobs-week-container" class="flex-1 overflow-auto px-4 py-3">
+        <!-- Grid built by JS: 7 day columns (Mon–Sun) -->
+        <div id="calendar-grid" class="grid grid-cols-1 md:grid-cols-7 gap-2 min-h-[320px]"></div>
       </div>
     </div>
   </div>
@@ -586,8 +594,17 @@
 
     // ── Jobs Widget ─────────────────────────────────────────────────────────
     let allJobs = [];
+    let calendarWeekOffset = 0;  // 0 = current week, 1 = next, -1 = prev
 
-    async function loadJobs() {
+    const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const STATUS_CLASSES = {
+      'Scheduled':   'bg-blue-900/40 text-blue-300 border-blue-700/50',
+      'In Progress': 'bg-orange-900/40 text-orange-300 border-orange-700/50',
+      'Completed':   'bg-green-900/40 text-green-300 border-green-700/50',
+      'Cancelled':   'bg-red-900/40 text-red-300 border-red-700/50',
+      'Pending':     'bg-gray-800/40 text-gray-300 border-gray-600/50',
+    };
+        async function loadJobs() {
       try {
         const res  = await fetch(API + '/jobs');
         const data = await res.json();
@@ -652,51 +669,133 @@
       }).join('');
     }
 
-    function openJobsWeekModal() {
-      document.getElementById('jobs-modal').classList.add('active');
-      const container = document.getElementById('jobs-week-container');
-      // Show jobs from both current and next week
-      const weekJobs = allJobs.filter(j => isThisWeek(j.date, 0) || isThisWeek(j.date, 1));
+    function shiftCalendarWeek(dir) {
+      calendarWeekOffset += dir;
+      renderCalendarGrid();
+      const btn = document.getElementById('cal-prev-btn');
+      btn.disabled = calendarWeekOffset <= -2;
+    }
 
-      if (weekJobs.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-500 py-8">No jobs scheduled this week or next.</div>';
-        return;
+    function renderCalendarGrid() {
+      const grid = document.getElementById('calendar-grid');
+      if (!grid) return;
+
+      // Build all 7 day columns for the current calendarWeekOffset
+      const { start } = getWeekBounds(calendarWeekOffset);
+      const dayLabels = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dayLabels.push({
+          dateStr: toDateInputValue(d),
+          label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          isToday: toDateInputValue(d) === getTodayStr(),
+        });
       }
 
-      const groups = {};
-      weekJobs.forEach(j => {
-        if (!groups[j.date]) groups[j.date] = [];
-        groups[j.date].push(j);
+      // Group jobs into their day columns
+      const jobsByDay = {};
+      dayLabels.forEach(dl => { jobsByDay[dl.dateStr] = []; });
+      allJobs.forEach(job => {
+        if (jobsByDay[job.date] !== undefined) {
+          jobsByDay[job.date].push(job);
+        }
       });
 
-      const sortedDates = Object.keys(groups).sort();
-      container.innerHTML = sortedDates.map(dateStr => {
-        const isTodayClass = isToday(dateStr) ? 'border-neon/50 ring-1 ring-neon/20' : 'border-[#2a2d3a]';
-        const jobsHtml = groups[dateStr].map(j => {
-          const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Pending'];
-          const si = STATUS_ICONS[j.status] || STATUS_ICONS['Pending'];
-          return `<div class="flex items-center justify-between py-2 border-b border-[#2a2d3a]/40 last:border-0 hover:bg-[#39FF14]/3 transition rounded px-2">
-            <div class="flex flex-col gap-0.5">
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-100 text-sm">${j.clientName}</span>
-                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${sc}">
-                  <i class="fa-solid ${si}"></i> ${j.status}
-                </span>
-              </div>
-              <span class="text-xs text-gray-500">${j.address}${j.notes ? ' · ' + j.notes : ''}</span>
-            </div>
-            <span class="text-xs text-gray-400 shrink-0 ml-2">${j.service || 'Cut'}</span>
-          </div>`;
-        }).join('');
-        return `<div class="border ${isTodayClass} rounded-xl overflow-hidden">
-          <div class="bg-[#12151e] px-4 py-2 border-b border-[#2a2d3a]">
-            <p class="text-xs font-semibold ${isToday(dateStr) ? 'text-neon' : 'text-gray-400'} uppercase tracking-wide">
-              ${isToday(dateStr) ? '⬤ Today — ' : ''}${formatDate(dateStr)}
-            </p>
+      // Build the 7-column grid
+      grid.innerHTML = dayLabels.map(dl => {
+        const jobs = jobsByDay[dl.dateStr] || [];
+        const headerClass = dl.isToday
+          ? 'bg-green-900/30 border border-green-700/40 text-neon'
+          : 'bg-[#12151e] border border-[#2a2d3a] text-gray-400';
+        const cardsHtml = jobs.length === 0
+          ? '<div class="text-center text-gray-600 text-[10px] py-4">No jobs</div>'
+          : jobs.map(j => renderJobCard(j)).join('');
+
+        return `<div class="flex flex-col gap-1.5 min-h-[200px]">
+          <div class="px-2 py-1.5 rounded-lg text-center ${headerClass}">
+            <p class="text-[10px] font-bold uppercase tracking-wider leading-tight">${dl.label}</p>
           </div>
-          <div class="p-3 space-y-1">${jobsHtml}</div>
+          <div class="flex flex-col gap-1.5">${cardsHtml}</div>
         </div>`;
       }).join('');
+
+      // Update week label
+      const label = document.getElementById('cal-week-label');
+      if (label) {
+        const weekStart = new Date(start);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        label.textContent = calendarWeekOffset === 0
+          ? 'This Week'
+          : calendarWeekOffset === 1
+          ? 'Next Week'
+          : `${fmt(weekStart)} – ${fmt(weekEnd)}`;
+      }
+    }
+
+    function renderJobCard(job) {
+      const sc = STATUS_CLASSES[job.status] || STATUS_CLASSES['Pending'];
+      const si = STATUS_ICONS[job.status] || STATUS_ICONS['Pending'];
+      const completedClass = job.status === 'Completed' ? 'opacity-60' : '';
+      const dimClass = job.status === 'Completed' ? 'line-through text-gray-500' : 'text-gray-100';
+      return `<div class="relative bg-[#1a1d27] border border-[#2a2d3a] rounded-lg p-2 hover:border-orange-500/40 transition group ${completedClass}">
+        <div class="flex items-start justify-between gap-1 mb-1">
+          <span class="font-semibold text-xs leading-tight ${dimClass}">${job.clientName}</span>
+          <span class="shrink-0"><span class="inline-flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded-full border ${sc}"><i class="fa-solid ${si}"></i></span></span>
+        </div>
+        <p class="text-[10px] text-gray-500 mb-2 leading-tight">${job.address || ''}</p>
+        <div class="flex items-center gap-1">
+          <button onclick="openEditJobModal('${job.rowIndex}')"
+            class="flex-1 text-[9px] py-1 rounded border border-blue-900/50 text-blue-400 hover:bg-blue-900/20 hover:border-blue-700 transition text-center"
+            title="Edit job">
+            <i class="fa-solid fa-pencil"></i> Edit
+          </button>
+          ${job.status !== 'Completed' ? `
+          <button onclick="markJobComplete('${job.rowIndex}')"
+            class="flex-1 text-[9px] py-1 rounded border border-green-900/50 text-green-400 hover:bg-green-900/20 hover:border-green-700 transition text-center"
+            title="Mark complete">
+            <i class="fa-solid fa-check"></i> Done
+          </button>` : ''}
+        </div>
+      </div>`;
+    }
+
+    async function markJobComplete(rowIndex) {
+      // Find the job in allJobs
+      const job = allJobs.find(j => String(j.rowIndex) === String(rowIndex));
+      if (!job) return;
+      try {
+        const res = await fetch(API + '/jobs/' + rowIndex, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientName: job.clientName,
+            date: job.date,
+            status: 'Completed',
+            address: job.address || '',
+            service: job.service || 'Cut',
+            notes: job.notes || '',
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert('Failed to mark complete: ' + (err.error || res.status));
+          return;
+        }
+        await loadJobs();
+        renderCalendarGrid();
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    function openJobsWeekModal() {
+      document.getElementById('jobs-modal').classList.add('active');
+      calendarWeekOffset = 0;
+      document.getElementById('cal-prev-btn').disabled = false;
+      renderCalendarGrid();
     }
 
     function closeJobsWeekModal() {
@@ -709,10 +808,20 @@
 
     // ── Add Job Modal ──────────────────────────────────────────────────────
     let jobClientsCache = [];
+    let editingJob = null;  // null = create mode; object = edit mode
 
-    async function openAddJobModal() {
+    async function openAddJobModal(prefillJob) {
       document.getElementById('job-modal').classList.add('active');
       document.getElementById('job-error').classList.add('hidden');
+      editingJob = prefillJob || null;
+
+      // Update modal title and button for edit vs create mode
+      const isEdit = !!editingJob;
+      document.getElementById('job-modal-title').textContent = isEdit ? 'Edit Job' : 'Schedule Job';
+      document.getElementById('job-submit-label').textContent = isEdit ? 'Save Changes' : 'Schedule Job';
+      document.getElementById('job-modal-icon').className = isEdit
+        ? 'fa-solid fa-pen-to-square text-blue-400'
+        : 'fa-solid fa-calendar-plus text-orange-400';
 
       // Reset form
       document.getElementById('job-client').value = '';
@@ -723,10 +832,7 @@
       // Reset week toggle to current week
       jobWeekOffset = 0;
       document.getElementById('next-week-btn').textContent = 'Next Week ›';
-
-      // Set default date to today, within current-week bounds
       applyJobDateRestrictions();
-      document.getElementById('job-date').value = getTodayStr();
 
       // Load clients if not yet cached
       if (!jobClientsCache.length) {
@@ -747,10 +853,36 @@
           loading.classList.add('hidden');
         }
       }
+
+      // Pre-fill if editing
+      if (editingJob) {
+        document.getElementById('job-client').value = editingJob.clientName || '';
+        document.getElementById('job-service').value = editingJob.service || 'Cut';
+        document.getElementById('job-status').value = editingJob.status || 'Pending';
+        document.getElementById('job-notes').value = editingJob.notes || '';
+        // Set date — figure out which week the job falls in
+        if (editingJob.date) {
+          document.getElementById('job-date').value = editingJob.date;
+          // Set week toggle based on whether date is in current or next week
+          jobWeekOffset = isThisWeek(editingJob.date, 0) ? 0 : 1;
+          document.getElementById('next-week-btn').textContent = jobWeekOffset === 0 ? 'Next Week ›' : '‹ This Week';
+          applyJobDateRestrictions();
+        }
+      } else {
+        document.getElementById('job-date').value = getTodayStr();
+      }
+    }
+
+    // Open the Add Job modal pre-filled for editing a specific job
+    function openEditJobModal(rowIndex) {
+      const job = allJobs.find(j => String(j.rowIndex) === String(rowIndex));
+      if (!job) { alert('Job not found.'); return; }
+      openAddJobModal(job);
     }
 
     function closeJobModal() {
       document.getElementById('job-modal').classList.remove('active');
+      editingJob = null;
     }
 
     async function submitJob() {
@@ -773,29 +905,38 @@
       const selectedOption = [...document.getElementById('job-client').selectedOptions][0];
       const address = selectedOption ? (selectedOption.dataset.address || '') : '';
 
+      const payload = { clientName, date, status, address, service, notes };
+
+      // Decide: PUT for edit (editingJob has rowIndex) or POST for create
+      const isEdit = editingJob && editingJob.rowIndex;
+      const url = isEdit ? API + '/jobs/' + editingJob.rowIndex : API + '/jobs';
+      const method = isEdit ? 'PUT' : 'POST';
+
       try {
-        const res = await fetch(API + '/jobs', {
-          method: 'POST',
+        const res = await fetch(url, {
+          method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientName, date, status, address, service, notes }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
 
         if (!res.ok) {
-          // Surface the exact server/Sheets error to the user via alert
           const serverMsg = data.detail || data.error || 'Unknown error';
-          const code      = data.code    ? ' [' + data.code + ']' : '';
-          alert('❌ Failed to save job:\n\n' + serverMsg + code + '\n\nCheck the server console for full details.');
-          errorEl.textContent = serverMsg + code;
+          alert('❌ Failed to ' + (isEdit ? 'update' : 'save') + ' job:\n\n' + serverMsg);
+          errorEl.textContent = serverMsg;
           errorEl.classList.remove('hidden');
           return;
         }
 
         closeJobModal();
         await loadJobs();
+        // Refresh calendar if it's open
+        if (document.getElementById('jobs-modal').classList.contains('active')) {
+          renderCalendarGrid();
+        }
       } catch (err) {
         const msg = err.message || 'Failed to schedule job.';
-        alert('❌ Network error:\n\n' + msg + '\n\nCheck your connection and try again.');
+        alert('❌ Network error:\n\n' + msg);
         errorEl.textContent = msg;
         errorEl.classList.remove('hidden');
       }

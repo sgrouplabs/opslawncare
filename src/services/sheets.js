@@ -386,8 +386,10 @@ async function getTotalWeeklyLabor() {
 // Sheet columns: A=ID, B=ClientName, C=Date, D=Status, E=Address, F=Service, G=Notes
 function parseJobs(rows) {
   // Range is already Jobs!A2:G — header is excluded; do NOT slice again
+  // Attach sheet row index so frontend can target exact rows on update
   if (!rows || rows.length < 1) return [];
-  return rows.filter(r => r && r.length >= 3).map(r => ({
+  return rows.filter(r => r && r.length >= 3).map((r, idx) => ({
+    rowIndex:   idx + 2,  // sheet row number (1-indexed; row 1 = header)
     id:         r[0] || uuidv4(),
     clientName: r[1] || '',
     date:       r[2] || '',
@@ -415,6 +417,17 @@ async function addJob({ clientName, date, status = 'Pending', address = '', serv
   console.log('[sheets] addJob → appending to Jobs!A2:G, values:', rowValues);
   await appendRow('Jobs!A2:G', rowValues);
   return { id, clientName, date, status, address, service, notes };
+}
+
+// Update an existing job row by its sheet row index
+async function updateJob(rowIndex, { clientName, date, status, address, service, notes }) {
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Jobs!A${rowIndex}:G${rowIndex}`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [[null, clientName, date, status, address, service, notes || '']] },
+  });
+  console.log('[sheets] updateJob → row', rowIndex, 'updated');
 }
 
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
@@ -504,4 +517,5 @@ module.exports = {
   getMileage,
   getJobs,
   addJob,
+  updateJob,
 };

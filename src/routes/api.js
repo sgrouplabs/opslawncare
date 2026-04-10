@@ -302,6 +302,27 @@ router.post('/jobs', async (req, res) => {
   }
 });
 
+// PUT /api/jobs/:rowIndex — update an existing job row by sheet row index
+router.put('/jobs/:rowIndex', async (req, res) => {
+  const { rowIndex } = req.params;
+  const { clientName, date, status, address, service, notes } = req.body;
+  if (!clientName || !date) {
+    return res.status(400).json({ error: 'Missing required fields: clientName, date', code: 'MISSING_FIELDS' });
+  }
+  if (!rowIndex || isNaN(parseInt(rowIndex))) {
+    return res.status(400).json({ error: 'Invalid row index', code: 'INVALID_ROW_INDEX' });
+  }
+  try {
+    await sheets.updateJob(parseInt(rowIndex), { clientName, date, status, address, service, notes });
+    console.log('[API] PUT /jobs/' + rowIndex + ' → ok');
+    res.json({ success: true });
+  } catch (err) {
+    const detail = err.response?.data || err.message;
+    console.error('[API] PUT /jobs/' + rowIndex + ' → Google Sheets API Error:', detail);
+    res.status(500).json({ error: 'Failed to update job', detail, code: 'JOB_UPDATE_ERROR' });
+  }
+});
+
 // ─── Weather ─────────────────────────────────────────────────────────────────
 
 router.get('/weather', async (req, res) => {
