@@ -60,6 +60,8 @@
     .leaflet-modal { z-index: 999 !important; }
     .leaflet-popup-content-wrapper { background: #1a1d27; color: #f3f4f6; border: 1px solid #2a2d3a; border-radius: 0.75rem; }
     .leaflet-popup-tip { background: #1a1d27; }
+    /* Job day checkbox peer */
+    .job-day-cb:checked + span { background: rgba(57,255,20,0.2); color: var(--neon); border-color: rgba(57,255,20,0.5); }
   </style>
 </head>
 <body>
@@ -145,9 +147,14 @@
             <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
               <i class="fa-solid fa-clipboard-list text-orange-400"></i> Upcoming Jobs
             </h2>
-            <button onclick="openJobsWeekModal()" class="text-xs text-gray-500 hover:text-neon transition flex items-center gap-1">
-              See Week <i class="fa-solid fa-expand text-[10px]"></i>
-            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="openAddJobModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md" title="Schedule a job">
+                <i class="fa-solid fa-plus"></i> Add Job
+              </button>
+              <button onclick="openJobsWeekModal()" class="text-xs text-gray-500 hover:text-neon transition flex items-center gap-1">
+                See Week <i class="fa-solid fa-expand text-[10px]"></i>
+              </button>
+            </div>
           </div>
           <div id="jobs-today-list">
             <div class="text-center text-gray-500 text-sm py-4">Loading jobs...</div>
@@ -156,30 +163,6 @@
           <div class="mt-3 pt-3 border-t border-[#2a2d3a]/50 flex items-center justify-between">
             <span class="text-xs text-gray-500" id="jobs-count-label">—</span>
             <button onclick="openJobsWeekModal()" class="text-xs text-orange-400 hover:text-neon transition">View full week ›</button>
-          </div>
-        </div>
-
-        <!-- Weekly Schedule — HIDDEN temporarily -->
-        <div class="card p-5 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-gray-100 flex items-center gap-2">
-              <i class="fa-solid fa-calendar-week text-neon"></i> Weekly Schedule
-            </h2>
-            <button onclick="openEmployeeModal()" class="btn-neon px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-md">
-              <i class="fa-solid fa-user-plus"></i> Add
-            </button>
-          </div>
-          <div class="grid grid-cols-7 gap-1 mb-2">
-            <div class="text-center text-xs font-bold text-gray-500">Mon</div>
-            <div class="text-center text-xs font-bold text-gray-500">Tue</div>
-            <div class="text-center text-xs font-bold text-gray-500">Wed</div>
-            <div class="text-center text-xs font-bold text-gray-500">Thu</div>
-            <div class="text-center text-xs font-bold text-gray-500">Fri</div>
-            <div class="text-center text-xs font-bold text-gray-500">Sat</div>
-            <div class="text-center text-xs font-bold text-gray-500">Sun</div>
-          </div>
-          <div id="schedule-body">
-            <div class="text-center text-gray-600 text-xs py-6">Loading schedule…</div>
           </div>
         </div>
 
@@ -193,7 +176,6 @@
               <i class="fa-solid fa-plus"></i> Add
             </button>
           </div>
-          <!-- See More link -->
           <div class="flex justify-end mb-2">
             <a href="/expenses.html" class="text-xs text-gray-500 hover:text-neon transition flex items-center gap-1">
               See More <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -221,7 +203,6 @@
               <i class="fa-solid fa-expand"></i>
             </button>
           </div>
-          <!-- z-0 anchors the map container below all modal layers -->
           <div id="client-map" class="w-full h-64 border border-[#2a2d3a] z-0"></div>
         </div>
 
@@ -303,8 +284,87 @@
     </div>
   </main>
 
+  <!-- ── ADD JOB MODAL ─────────────────────────────────────────────── -->
+  <div id="job-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[9999]">
+    <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-orange-700/40 shadow-xl z-[10000]">
+      <button onclick="closeJobModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 class="text-xl font-bold text-gray-100 mb-5 flex items-center gap-2">
+        <i class="fa-solid fa-calendar-plus text-orange-400"></i> Schedule Job
+      </h3>
+
+      <!-- Client Dropdown -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1" for="job-client">
+          Client <span class="text-red-400">*</span>
+        </label>
+        <select id="job-client" required
+          class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+          <option value="">Select a client…</option>
+        </select>
+        <p id="job-client-loading" class="text-xs text-gray-500 mt-1 hidden">Loading clients…</p>
+      </div>
+
+      <!-- Service Type -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1" for="job-service">Service</label>
+        <select id="job-service"
+          class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+          <option value="Cut">Cut</option>
+          <option value="Full Cleanup">Full Cleanup</option>
+          <option value="Mowing + Edging">Mowing + Edging</option>
+          <option value="Leaf Removal">Leaf Removal</option>
+          <option value="Snow Removal">Snow Removal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <!-- Date + Next Week Toggle -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-sm font-medium text-gray-400" for="job-date">
+            Date <span class="text-red-400">*</span>
+          </label>
+          <button type="button" id="next-week-btn" onclick="toggleNextWeek()"
+            class="text-xs px-3 py-1 rounded-lg border border-orange-800/50 text-orange-400 hover:bg-orange-900/20 hover:border-orange-700 transition font-medium">
+            Next Week ›
+          </button>
+        </div>
+        <input type="date" id="job-date" required
+          class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        <p class="text-xs text-gray-500 mt-1" id="week-hint">Scheduling for: This Week</p>
+      </div>
+
+      <!-- Status -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1" for="job-status">Status</label>
+        <select id="job-status"
+          class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+          <option value="Pending">Pending</option>
+          <option value="Scheduled">Scheduled</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <!-- Notes -->
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-400 mb-1" for="job-notes">Notes</label>
+        <input type="text" id="job-notes" placeholder="Gate code, special instructions…"
+          class="w-full bg-[#12151e] border border-[#2a2d3a] rounded-lg px-3 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+
+      <div id="job-error" class="text-red-400 text-sm hidden mb-3 bg-red-900/20 border border-red-800/40 rounded-lg px-4 py-2.5"></div>
+
+      <button onclick="submitJob()" class="btn-neon w-full py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-check"></i> Schedule Job
+      </button>
+    </div>
+  </div>
+
   <!-- Add Expense Modal -->
-  <!-- Backdrop: z-[999] — sits above the map; Content: z-[10000] — sits above everything -->
   <div id="expense-modal" class="modal fixed inset-0 bg-black/70 items-center justify-center z-[999]">
     <div class="card rounded-2xl w-full max-w-md mx-4 p-6 relative border border-[#2a2d3a] z-[10000]">
       <button onclick="closeExpenseModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-300 text-lg">
@@ -417,19 +477,15 @@
   <!-- Expanded Map Modal -->
   <div id="map-modal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-[9999]">
     <div class="relative w-full max-w-[92vw] h-[82vh] mx-4 flex flex-col">
-      <!-- Modal Header -->
       <div class="flex items-center justify-between mb-2">
         <h3 class="text-lg font-bold text-gray-100 flex items-center gap-2">
           <i class="fa-solid fa-map-location-dot text-neon"></i> Client Map — Full View
         </h3>
-        <button onclick="closeFullMapModal()"
-          class="text-gray-400 hover:text-gray-100 text-2xl transition px-2">
+        <button onclick="closeFullMapModal()" class="text-gray-400 hover:text-gray-100 text-2xl transition px-2">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <!-- Full Map Container -->
       <div id="full-map" class="flex-1 border border-[#2a2d3a] rounded-xl overflow-hidden"></div>
-      <!-- Legend -->
       <div class="mt-2 text-xs text-gray-500 flex items-center gap-3 justify-center">
         <span class="flex items-center gap-1">
           <span class="inline-block w-3 h-3 rounded-full bg-[#39FF14] shadow-[0_0_6px_#39FF14]"></span>
@@ -443,17 +499,14 @@
   <!-- Jobs Week Modal -->
   <div id="jobs-modal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-[9999]">
     <div class="relative w-full max-w-[90vw] max-h-[85vh] mx-4 flex flex-col card border-[#2a2d3a] overflow-hidden">
-      <!-- Modal Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[#2a2d3a] shrink-0">
         <h3 class="text-lg font-bold text-gray-100 flex items-center gap-2">
           <i class="fa-solid fa-clipboard-list text-orange-400"></i> This Week's Jobs
         </h3>
-        <button onclick="closeJobsWeekModal()"
-          class="text-gray-400 hover:text-gray-100 text-2xl transition px-2">
+        <button onclick="closeJobsWeekModal()" class="text-gray-400 hover:text-gray-100 text-2xl transition px-2">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <!-- Day Groups -->
       <div id="jobs-week-container" class="overflow-y-auto flex-1 px-6 py-4 space-y-5">
         <div class="text-center text-gray-500 py-8">Loading...</div>
       </div>
@@ -472,6 +525,68 @@
     setInterval(updateClock, 60000);
     updateClock();
 
+    // ── Week helpers ───────────────────────────────────────────────────────
+    function getTodayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function getWeekBounds(weekOffset) {
+      // weekOffset: 0 = current week, 1 = next week
+      const today = new Date();
+      const dow   = today.getDay(); // 0=Sun
+      const start = new Date(today);
+      start.setDate(today.getDate() - dow + (weekOffset * 7));
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return { start, end };
+    }
+
+    function toDateInputValue(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T12:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function isToday(dateStr) { return dateStr === getTodayStr(); }
+
+    function isThisWeek(dateStr, weekOffset) {
+      const { start, end } = getWeekBounds(weekOffset);
+      const d = new Date(dateStr + 'T12:00:00');
+      return d >= start && d <= end;
+    }
+
+    // ── Date restriction state ──────────────────────────────────────────────
+    let jobWeekOffset = 0; // 0=current week, 1=next week
+
+    function applyJobDateRestrictions() {
+      const { start, end } = getWeekBounds(jobWeekOffset);
+      const dateInput = document.getElementById('job-date');
+      dateInput.min = toDateInputValue(start);
+      dateInput.max = toDateInputValue(end);
+      const hint = document.getElementById('week-hint');
+      hint.textContent = jobWeekOffset === 0 ? 'Scheduling for: This Week' : 'Scheduling for: Next Week';
+      // If current value is out of new range, reset
+      const val = dateInput.value;
+      if (val && (val < dateInput.min || val > dateInput.max)) {
+        dateInput.value = toDateInputValue(start);
+      }
+    }
+
+    function toggleNextWeek() {
+      jobWeekOffset = jobWeekOffset === 0 ? 1 : 0;
+      const btn = document.getElementById('next-week-btn');
+      btn.textContent = jobWeekOffset === 0 ? 'Next Week ›' : '‹ This Week';
+      applyJobDateRestrictions();
+    }
+
     // ── Jobs Widget ─────────────────────────────────────────────────────────
     let allJobs = [];
 
@@ -489,47 +604,19 @@
       }
     }
 
-    function getTodayStr() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
-
-    function getWeekBounds() {
-      const today = new Date();
-      const dow   = today.getDay();            // 0=Sun
-      const start = new Date(today);
-      start.setDate(today.getDate() - dow);     // Sunday
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);         // Saturday
-      return { start, end };
-    }
-
-    function formatDate(dateStr) {
-      const d = new Date(dateStr + 'T12:00:00');
-      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    }
-
-    function isToday(dateStr) {
-      return dateStr === getTodayStr();
-    }
-
-    function isThisWeek(dateStr) {
-      const { start, end } = getWeekBounds();
-      const d = new Date(dateStr + 'T12:00:00');
-      return d >= start && d <= end;
-    }
-
     const STATUS_COLORS = {
       'Scheduled':   'bg-blue-900/40 text-blue-300 border-blue-700/50',
       'In Progress':  'bg-orange-900/40 text-orange-300 border-orange-700/50',
       'Completed':    'bg-green-900/40 text-green-300 border-green-700/50',
       'Cancelled':    'bg-red-900/40 text-red-300 border-red-700/50',
+      'Pending':      'bg-gray-800/40 text-gray-300 border-gray-600/50',
     };
     const STATUS_ICONS = {
       'Scheduled':   'fa-clock',
       'In Progress': 'fa-spinner fa-spin',
       'Completed':    'fa-check-circle',
       'Cancelled':   'fa-ban',
+      'Pending':      'fa-hourglass-half',
     };
 
     function renderTodayJobs() {
@@ -548,8 +635,8 @@
       emptyEl.classList.add('hidden');
       countEl.textContent = `${todayJobs.length} job${todayJobs.length !== 1 ? 's' : ''} today`;
       listEl.innerHTML = todayJobs.map(j => {
-        const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Scheduled'];
-        const si = STATUS_ICONS[j.status] || STATUS_ICONS['Scheduled'];
+        const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Pending'];
+        const si = STATUS_ICONS[j.status] || STATUS_ICONS['Pending'];
         return `<div class="flex items-center justify-between py-2 border-b border-[#2a2d3a]/40 last:border-0">
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-gray-100">${j.clientName}</span>
@@ -565,28 +652,26 @@
     function openJobsWeekModal() {
       document.getElementById('jobs-modal').classList.add('active');
       const container = document.getElementById('jobs-week-container');
-      const weekJobs = allJobs.filter(j => isThisWeek(j.date));
+      // Show jobs from both current and next week
+      const weekJobs = allJobs.filter(j => isThisWeek(j.date, 0) || isThisWeek(j.date, 1));
 
       if (weekJobs.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-500 py-8">No jobs scheduled this week.</div>';
+        container.innerHTML = '<div class="text-center text-gray-500 py-8">No jobs scheduled this week or next.</div>';
         return;
       }
 
-      // Group by date
       const groups = {};
       weekJobs.forEach(j => {
         if (!groups[j.date]) groups[j.date] = [];
         groups[j.date].push(j);
       });
 
-      // Sort dates
       const sortedDates = Object.keys(groups).sort();
-
       container.innerHTML = sortedDates.map(dateStr => {
         const isTodayClass = isToday(dateStr) ? 'border-neon/50 ring-1 ring-neon/20' : 'border-[#2a2d3a]';
         const jobsHtml = groups[dateStr].map(j => {
-          const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Scheduled'];
-          const si = STATUS_ICONS[j.status] || STATUS_ICONS['Scheduled'];
+          const sc = STATUS_COLORS[j.status] || STATUS_COLORS['Pending'];
+          const si = STATUS_ICONS[j.status] || STATUS_ICONS['Pending'];
           return `<div class="flex items-center justify-between py-2 border-b border-[#2a2d3a]/40 last:border-0 hover:bg-[#39FF14]/3 transition rounded px-2">
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center gap-2">
@@ -600,7 +685,7 @@
             <span class="text-xs text-gray-400 shrink-0 ml-2">${j.service || 'Cut'}</span>
           </div>`;
         }).join('');
-        return `<div class="border border-[#2a2d3a] rounded-xl overflow-hidden">
+        return `<div class="border ${isTodayClass} rounded-xl overflow-hidden">
           <div class="bg-[#12151e] px-4 py-2 border-b border-[#2a2d3a]">
             <p class="text-xs font-semibold ${isToday(dateStr) ? 'text-neon' : 'text-gray-400'} uppercase tracking-wide">
               ${isToday(dateStr) ? '⬤ Today — ' : ''}${formatDate(dateStr)}
@@ -619,12 +704,97 @@
       if (e.target === e.currentTarget) closeJobsWeekModal();
     });
 
+    // ── Add Job Modal ──────────────────────────────────────────────────────
+    let jobClientsCache = [];
+
+    async function openAddJobModal() {
+      document.getElementById('job-modal').classList.add('active');
+      document.getElementById('job-error').classList.add('hidden');
+
+      // Reset form
+      document.getElementById('job-client').value = '';
+      document.getElementById('job-service').value = 'Cut';
+      document.getElementById('job-status').value = 'Pending';
+      document.getElementById('job-notes').value = '';
+
+      // Reset week toggle to current week
+      jobWeekOffset = 0;
+      document.getElementById('next-week-btn').textContent = 'Next Week ›';
+
+      // Set default date to today, within current-week bounds
+      applyJobDateRestrictions();
+      document.getElementById('job-date').value = getTodayStr();
+
+      // Load clients if not yet cached
+      if (!jobClientsCache.length) {
+        const sel = document.getElementById('job-client');
+        const loading = document.getElementById('job-client-loading');
+        sel.disabled = true;
+        loading.classList.remove('hidden');
+        try {
+          const res = await fetch(API + '/clients');
+          const data = await res.json();
+          jobClientsCache = data.clients || [];
+          sel.innerHTML = '<option value="">Select a client…</option>' +
+            jobClientsCache.map(c => `<option value="${c.name}" data-address="${c.address || ''}">${c.name}</option>`).join('');
+        } catch (err) {
+          console.error('[job] loadClients error:', err);
+        } finally {
+          sel.disabled = false;
+          loading.classList.add('hidden');
+        }
+      }
+    }
+
+    function closeJobModal() {
+      document.getElementById('job-modal').classList.remove('active');
+    }
+
+    async function submitJob() {
+      const clientName = document.getElementById('job-client').value.trim();
+      const date       = document.getElementById('job-date').value;
+      const status     = document.getElementById('job-status').value;
+      const service    = document.getElementById('job-service').value;
+      const notes      = document.getElementById('job-notes').value.trim();
+      const errorEl    = document.getElementById('job-error');
+
+      errorEl.classList.add('hidden');
+
+      if (!clientName || !date) {
+        errorEl.textContent = 'Please select a client and a date.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // Look up selected client's address
+      const selectedOption = [...document.getElementById('job-client').selectedOptions][0];
+      const address = selectedOption ? (selectedOption.dataset.address || '') : '';
+
+      try {
+        const res = await fetch(API + '/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientName, date, status, address, service, notes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error((data.error || '') + (data.code ? ' [' + data.code + ']' : ''));
+        closeJobModal();
+        await loadJobs();
+      } catch (err) {
+        errorEl.textContent = err.message || 'Failed to schedule job.';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // Close job modal on backdrop click
+    document.getElementById('job-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeJobModal();
+    });
+
     const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
     const pct = n => Number(n || 0).toFixed(1) + '%';
 
     // ── Leaflet / Map ─────────────────────────────────────────────────────
-
-    // Sleep helper for sequential rate-limiting
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
     const GEOCODE_CACHE = new Map();
@@ -658,10 +828,8 @@
       GEOCODE_TIMER = setTimeout(processGeocodeQueue, 1100);
     }
 
-    // Store current client list for the full-map modal
     let currentClients = [];
 
-    // ── Main Dashboard Map ─────────────────────────────────────────────────
     const map = L.map('client-map').setView([34.5034, -82.6501], 12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetmap', maxZoom: 19,
@@ -672,86 +840,48 @@
       html: '<div style="width:14px;height:14px;background:#39FF14;border-radius:50%;border:2px solid #0f1117;box-shadow:0 0 10px #39FF14,0 0 20px rgba(57,255,20,0.5);"></div>'
     });
 
-    // Single LayerGroup holds all client markers — cleared and redrawn on every update
     const markerLayer = L.layerGroup().addTo(map);
 
-    /**
-     * Plots markers on a given Leaflet map instance (used for the full-map modal).
-     * Geocodes sequentially with 1000ms between each request to stay within Nominatim limits.
-     */
     async function plotMarkersOn(targetMap, clients) {
-      if (!clients || clients.length === 0) {
-        targetMap.setView([34.5034, -82.6501], 12);
-        return;
-      }
-
+      if (!clients || !clients.length) { targetMap.setView([34.5034, -82.6501], 12); return; }
       const markers = [];
-      let plotted = 0;
       for (let i = 0; i < clients.length; i++) {
-        const c = clients[i];
         await sleep(1000);
-        const coord = await geocodeAddress(c.address);
-        if (!coord) {
-          console.warn('[map] Geocoding failed for: ' + c.name + ' — "' + c.address + '" — check for typos');
-          continue;
-        }
+        const coord = await geocodeAddress(clients[i].address);
+        if (!coord) { console.warn('[map] Geocoding failed for:', clients[i].name); continue; }
         const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon })
-          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + c.name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + c.address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(c.pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (c.totalCuts || 0) + ' cuts</p></div>');
+          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + clients[i].name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + clients[i].address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(clients[i].pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (clients[i].totalCuts || 0) + ' cuts</p></div>');
         marker.addTo(targetMap);
         markers.push(marker);
-        plotted++;
       }
-
       if (markers.length > 0) {
-        try {
-          const group = L.featureGroup(markers);
-          targetMap.fitBounds(group.getBounds().pad(0.15));
-        } catch (_) {}
+        try { targetMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.15)); } catch (_) {}
       } else {
         targetMap.setView([34.5034, -82.6501], 12);
       }
-      console.log('[map] ' + plotted + '/' + clients.length + ' markers plotted on full-map modal');
     }
 
-    /**
-     * Clears existing markers and re-plots all clients on the dashboard map.
-     * Called on every dashboard load and after any client mutation.
-     */
     async function updateMapMarkers(clients) {
       markerLayer.clearLayers();
       currentClients = clients || [];
-
-      if (!clients || clients.length === 0) {
-        map.setView([34.5034, -82.6501], 12);
-        console.log('[map] no clients to plot');
-        return;
-      }
-
-      // Geocode sequentially with 1000 ms between requests to stay within Nominatim limits
+      if (!clients || !clients.length) { map.setView([34.5034, -82.6501], 12); return; }
       let plotted = 0;
       for (let i = 0; i < clients.length; i++) {
-        const c = clients[i];
         await sleep(1000);
-        const coord = await geocodeAddress(c.address);
-        if (!coord) {
-          console.warn('[map] Geocoding failed for: ' + c.name + ' — "' + c.address + '" — check for typos in the address');
-          continue;
-        }
+        const coord = await geocodeAddress(clients[i].address);
+        if (!coord) { console.warn('[map] Geocoding failed for:', clients[i].name); continue; }
         const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon })
-          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + c.name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + c.address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(c.pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (c.totalCuts || 0) + ' cuts</p></div>');
+          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + clients[i].name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + clients[i].address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(clients[i].pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (clients[i].totalCuts || 0) + ' cuts</p></div>');
         markerLayer.addLayer(marker);
         plotted++;
       }
-
       if (plotted > 0) {
         try { map.fitBounds(markerLayer.getBounds().pad(0.15)); } catch (_) {}
       } else {
         map.setView([34.5034, -82.6501], 12);
       }
-      console.log('[map] ' + plotted + '/' + clients.length + ' markers plotted');
     }
 
-    // Backwards-compatible alias
     const plotClients = updateMapMarkers;
 
     // ── Expanded Map Modal ─────────────────────────────────────────────────
@@ -760,20 +890,13 @@
     function openFullMapModal() {
       const modal = document.getElementById('map-modal');
       modal.classList.add('active');
-
-      // Initialize a fresh Leaflet map in the full-map div
       if (fullMap) { fullMap.remove(); fullMap = null; }
       fullMap = L.map('full-map', { preferCanvas: false }).setView([34.5034, -82.6501], 13);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetmap', maxZoom: 19,
       }).addTo(fullMap);
-
-      // Invalidate size after modal renders so tiles compute their dimensions correctly
       setTimeout(() => { if (fullMap) fullMap.invalidateSize({ animate: false }); }, 200);
-
-      // Plot markers on the full map
       plotMarkersOn(fullMap, currentClients);
-
       document.getElementById('modal-legend-count').textContent =
         currentClients.length + ' client' + (currentClients.length !== 1 ? 's' : '') + ' loaded';
     }
@@ -783,13 +906,11 @@
       if (fullMap) { fullMap.remove(); fullMap = null; }
     }
 
-    // Close modal on backdrop click
     document.getElementById('map-modal').addEventListener('click', e => {
       if (e.target === e.currentTarget) closeFullMapModal();
     });
 
     // ── Dashboard Load ────────────────────────────────────────────────────
-
     async function loadDashboard() {
       try {
         const [summary, weatherData, clients, employees] = await Promise.all([
@@ -799,10 +920,6 @@
           fetch(API + '/employees').then(r => r.json()),
         ]);
 
-        console.log('[DEBUG index] GET /dashboard/summary →', JSON.stringify(summary));
-        console.log('[DEBUG index] GET /clients →', JSON.stringify(clients));
-        console.log('[DEBUG index] GET /employees →', JSON.stringify(employees));
-
         // KPIs
         document.getElementById('kpi-revenue').textContent = usd(summary.totalRevenue);
         document.getElementById('kpi-profit').textContent  = usd(summary.netProfit);
@@ -811,7 +928,7 @@
         document.getElementById('kpi-clients').textContent = summary.clientCount || 0;
 
         // Financial summary
-        document.getElementById('fin-revenue').textContent  = usd(summary.totalRevenue);
+        document.getElementById('fin-revenue').textContent   = usd(summary.totalRevenue);
         document.getElementById('fin-expenses').textContent = usd(summary.totalExpenses);
         document.getElementById('fin-labor').textContent     = usd(summary.totalLaborExpense);
         document.getElementById('fin-net').textContent      = usd(summary.netProfit);
@@ -858,7 +975,7 @@
               <td class="px-4 py-3 text-red-400 text-sm">${usd(m.expenseShare)}</td>
               <td class="px-4 py-3 text-blue-400 font-semibold text-sm">${usd(m.net)}</td>
               <td class="px-4 py-3 font-bold text-sm ${cls}">${pct(m.margin)}</td>
-            </tr>`;}).join('')
+            </tr>';}).join('')
           : '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data.</td></tr>';
 
         // Map
@@ -867,17 +984,12 @@
         // Jobs widget
         loadJobs();
 
-        // Schedule (data fetched but widget is hidden; kept live for when unhidden)
-        window.empData = employees.employees || [];
-        renderSchedule(window.empData);
-
       } catch (err) {
         console.error('[DEBUG index] loadDashboard error:', err);
       }
     }
 
     // ── Weather Grid ───────────────────────────────────────────────────
-
     function renderWeatherGrid(forecast) {
       const grid = document.getElementById('weather-grid');
       if (!forecast || !forecast.length) {
@@ -895,67 +1007,10 @@
       }).join('');
     }
 
-    // ── Weekly Schedule Rendering ────────────────────────────────────────
-
-    const DAY_COLS  = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-    const NAME_COLORS = {
-      Bentley:   { bg: 'bg-blue-900/50',   border: 'border-blue-600',   text: 'text-blue-300'   },
-      Kevin:     { bg: 'bg-purple-900/50', border: 'border-purple-600', text: 'text-purple-300' },
-      'Mr. Lee':{ bg: 'bg-orange-900/50', border: 'border-orange-600', text: 'text-orange-300' },
-    };
-    const FALLBACK_COLORS = [
-      { bg: 'bg-cyan-900/50',   border: 'border-cyan-600',   text: 'text-cyan-300'   },
-      { bg: 'bg-pink-900/50',   border: 'border-pink-600',   text: 'text-pink-300'   },
-      { bg: 'bg-yellow-900/50', border: 'border-yellow-600', text: 'text-yellow-300' },
-    ];
-    const COLOR_NAMES = Object.keys(NAME_COLORS);
-
-    function getColor(name) {
-      return NAME_COLORS[name] || FALLBACK_COLORS[COLOR_NAMES.length % FALLBACK_COLORS.length];
-    }
-
-    function parseAssignedDays(raw) {
-      if (!raw) return new Set();
-      if (Array.isArray(raw)) return new Set(raw.map(d => String(d).trim().toLowerCase()));
-      return new Set(raw.split(',').map(d => d.trim().toLowerCase()));
-    }
-
-    function renderSchedule(employees) {
-      const body = document.getElementById('schedule-body');
-      const arr  = Array.isArray(employees) ? employees : [];
-      if (!arr.length) {
-        body.innerHTML = '<div class="text-center text-gray-600 text-xs py-6">No employees added yet. Click "Add" to get started.</div>';
-        return;
-      }
-      body.innerHTML = arr.map(emp => {
-        const days = parseAssignedDays(emp.assignedDays);
-        const { bg, border, text } = getColor(emp.name);
-        const cells = DAY_COLS.map(day => {
-          if (!days.has(day)) {
-            return `<div class="flex flex-col items-center gap-1 p-1 min-h-[48px] justify-center">
-              <span class="text-gray-700 text-xs">—</span>
-            </div>`;
-          }
-          return `<div class="flex flex-col items-center gap-1 p-1 min-h-[48px] justify-center">
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg ${bg} border ${border} text-xs font-bold ${text}">
-              ${emp.name.split(' ')[0]}
-              <span class="text-[10px] opacity-75">$${(emp.dailyPay || 0)}/d</span>
-            </span>
-          </div>`;
-        }).join('');
-        return `<div class="grid grid-cols-7 gap-1 mb-2 items-center">
-          <div class="text-xs font-semibold text-gray-300 truncate pr-1" title="${emp.name}">${emp.name}</div>
-          ${cells}
-        </div>`;
-      }).join('');
-      console.log('[DEBUG schedule] rendered ' + arr.length + ' employee rows');
-    }
-
     // ── Modals ─────────────────────────────────────────────────────────
-
     function openEmployeeModal(employee) {
       document.getElementById('employee-modal').classList.add('active');
-      document.getElementByById('emp-error').classList.add('hidden');
+      document.getElementById('emp-error').classList.add('hidden');
       const form = document.getElementById('emp-form');
       form.reset();
       form.querySelectorAll('[name="assignedDays"]').forEach(cb => cb.checked = false);
@@ -978,10 +1033,10 @@
 
     async function submitEmployee(e) {
       e.preventDefault();
-      const form    = document.getElementById('emp-form');
-      const fd     = new FormData(form);
-      const id     = document.getElementById('emp-id').value;
-      const payload = {
+      const form     = document.getElementById('emp-form');
+      const fd       = new FormData(form);
+      const id       = document.getElementById('emp-id').value;
+      const payload  = {
         name:        fd.get('name'),
         daysPerWeek: parseInt(fd.get('daysPerWeek')) || 0,
         dailyPay:    parseFloat(fd.get('dailyPay')) || 0,
@@ -994,11 +1049,9 @@
         const res  = await fetch(API + '/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data  = await res.json();
         if (!res.ok) throw new Error((data.error || '') + ' (HTTP ' + res.status + ')');
-        console.log('[DEBUG] POST /employees →', JSON.stringify(data.employee));
         closeEmployeeModal();
         loadDashboard();
       } catch (err) {
-        console.error('[DEBUG] submitEmployee error:', err);
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
       }
@@ -1008,7 +1061,7 @@
       document.getElementById('expense-modal').classList.add('active');
       document.getElementById('expense-error').classList.add('hidden');
       document.getElementById('expense-form').reset();
-      document.getElementById('expense-form').date.value = new Date().toISOString().split('T')[0];
+      document.getElementById('expense-form').querySelector('[name="date"]').value = new Date().toISOString().split('T')[0];
     }
 
     function closeExpenseModal() {

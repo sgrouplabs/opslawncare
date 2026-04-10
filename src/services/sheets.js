@@ -147,6 +147,8 @@ function parseClients(rows) {
     notes:           r[6] || '',
     cutFrequency:    (r[7] || '').trim() || '',
     paymentMethod:   (r[8] || '').trim() || '',
+    // Column J — comma-separated day names, e.g. "Monday,Wednesday,Friday"
+    cutDays:         (r[9] || '').trim() || '',
   }));
 }
 
@@ -179,7 +181,7 @@ function parseEmployees(rows) {
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 async function getClients() {
-  return parseClients(await getSheetValues('Clients!A2:I'));
+  return parseClients(await getSheetValues('Clients!A2:J'));
 }
 
 async function getClientById(id) {
@@ -194,10 +196,11 @@ async function addClients(clientsArray) {
     c.notes || '',
     c.cutFrequency || '',
     c.paymentMethod || '',
+    Array.isArray(c.cutDays) ? c.cutDays.join(',') : (c.cutDays || ''),
   ]);
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Clients!A2:I',
+    range: 'Clients!A2:J',
     valueInputOption: 'USER_ENTERED',
     resource: { values: rows },
   });
@@ -205,16 +208,16 @@ async function addClients(clientsArray) {
 }
 
 // Update an existing client row by ID
-async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod }) {
+async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays }) {
   const rowNum = await findRowById('Clients!A:A', id);
   if (!rowNum) throw new Error('Client not found: ' + id);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Clients!A${rowNum}:I${rowNum}`,
+    range: `Clients!A${rowNum}:J${rowNum}`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip || 0, notes || '', cutFrequency || '', paymentMethod || '']] },
+    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip || 0, notes || '', cutFrequency || '', paymentMethod || '', Array.isArray(cutDays) ? cutDays.join(',') : (cutDays || '')]] },
   });
-  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod };
+  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays };
 }
 
 // Delete client row by ID
@@ -369,6 +372,39 @@ async function getTotalWeeklyLabor() {
   return employees.reduce((sum, e) => sum + (e.dailyPay * e.daysPerWeek), 0);
 }
 
+// ─── Jobs ─────────────────────────────────────────────────────────────────────
+
+// Sheet columns: A=ID, B=ClientName, C=Date, D=Status, E=Address, F=Service, G=Notes
+function parseJobs(rows) {
+  if (!rows || rows.length < 2) return [];
+  return rows.slice(1).filter(r => r && r.length >= 3).map(r => ({
+    id:         r[0] || uuidv4(),
+    clientName: r[1] || '',
+    date:       r[2] || '',
+    status:     r[3] || 'Pending',
+    address:    r[4] || '',
+    service:    r[5] || 'Cut',
+    notes:      r[6] || '',
+  }));
+}
+
+async function getJobs() {
+  try {
+    const rows = await getSheetValues('Jobs!A2:G');
+    return parseJobs(rows);
+  } catch (err) {
+    // Sheet may not exist yet — return empty array gracefully
+    console.warn('[sheets] getJobs: could not read sheet, returning [] —', err.message);
+    return [];
+  }
+}
+
+async function addJob({ clientName, date, status = 'Pending', address = '', service = 'Cut', notes = '' }) {
+  const id = uuidv4();
+  await appendRow('Jobs!A2:G', [id, clientName, date, status, address, service, notes || '']);
+  return { id, clientName, date, status, address, service, notes };
+}
+
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
 async function getDashboardSummary() {
@@ -454,4 +490,6 @@ module.exports = {
   getProfitMargins,
   getOptimizedRoute,
   getMileage,
+  getJobs,
+  addJob,
 };

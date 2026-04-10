@@ -232,10 +232,37 @@ router.get('/schedule', async (req, res) => {
 router.get('/jobs', async (req, res) => {
   try {
     const jobs = await sheets.getJobs();
-    jobs.sort((a, b) => new Date(a.date) - new Date(b.date));
-    res.json({ jobs });
+    // Sort ascending by date; guard against empty array
+    if (jobs && jobs.length > 1) {
+      jobs.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    res.json({ jobs: jobs || [] });
   } catch (err) {
+    console.error('[API] GET /jobs error:', err.message);
     res.status(500).json({ error: 'Failed to fetch jobs', code: 'JOBS_FETCH_ERROR' });
+  }
+});
+
+// POST /api/jobs — create a new job row
+router.post('/jobs', async (req, res) => {
+  const { clientName, date, status, address, service, notes } = req.body;
+  if (!clientName || !date) {
+    return res.status(400).json({ error: 'Missing required fields: clientName, date', code: 'MISSING_FIELDS' });
+  }
+  try {
+    const job = await sheets.addJob({
+      clientName,
+      date,
+      status: status || 'Pending',
+      address: address || '',
+      service: service || 'Cut',
+      notes: notes || '',
+    });
+    console.log('[API] POST /jobs → created:', job.id);
+    res.status(201).json({ job });
+  } catch (err) {
+    console.error('[API] POST /jobs error:', err.message);
+    res.status(500).json({ error: 'Failed to add job', code: 'JOB_ADD_ERROR' });
   }
 });
 

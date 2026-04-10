@@ -150,6 +150,7 @@
                 Mileage <i class="fa-solid fa-sort sort-icon ml-1"></i>
               </th>
               <th class="px-4 py-3 text-gray-400">Frequency</th>
+              <th class="px-4 py-3 text-gray-400">Cut Days</th>
               <th class="px-4 py-3 text-gray-400">Payment</th>
               <th class="px-4 py-3 text-gray-400">Actions</th>
             </tr>
@@ -225,6 +226,40 @@
                     <option>Cash</option>
                     <option>Check</option>
                   </select>
+                </div>
+              </div>
+              <!-- Cut Days — checkbox group -->
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Cut Days</label>
+                <div class="grid grid-cols-7 gap-2">
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Monday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">M</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Tuesday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">T</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Wednesday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">W</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Thursday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Th</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Friday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">F</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Saturday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Sa</span>
+                  </label>
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="cut_days" value="Sunday" class="sr-only peer">
+                    <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Su</span>
+                  </label>
                 </div>
               </div>
               <div>
@@ -318,6 +353,41 @@
           </div>
         </div>
 
+        <!-- Cut Days — checkbox group -->
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">Cut Days</label>
+          <div class="grid grid-cols-7 gap-2">
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Monday" id="edit-cut-monday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">M</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Tuesday" id="edit-cut-tuesday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">T</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Wednesday" id="edit-cut-wednesday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">W</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Thursday" id="edit-cut-thursday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Th</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Friday" id="edit-cut-friday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">F</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Saturday" id="edit-cut-saturday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Sa</span>
+            </label>
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="cut_days" value="Sunday" id="edit-cut-sunday" class="sr-only peer">
+              <span class="w-9 h-9 rounded-lg border border-[#2a2d3a] flex items-center justify-center text-xs font-semibold text-gray-400 peer-checked:bg-green-900/40 peer-checked:text-neon peer-checked:border-green-600 hover:border-[#3a3d4a] transition">Su</span>
+            </label>
+          </div>
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Notes <span class="text-gray-600">(optional)</span></label>
           <textarea name="client_notes" id="edit-client-notes" rows="2" placeholder="Gate code, dog in yard, etc."
@@ -350,6 +420,23 @@
     updateClock();
 
     const usd = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+    // Render cutDays as a comma-separated string of day abbreviations
+    const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const DAY_ABBR  = { Monday:'M', Tuesday:'T', Wednesday:'W', Thursday:'Th', Friday:'F', Saturday:'Sa', Sunday:'Su' };
+    function renderCutDays(cutDaysStr) {
+      if (!cutDaysStr) return '<span class="text-gray-600 text-xs">—</span>';
+      const days = cutDaysStr.split(',').map(d => d.trim()).filter(Boolean);
+      if (!days.length) return '<span class="text-gray-600 text-xs">—</span>';
+      return '<div class="flex flex-wrap gap-1">' +
+        days.map(d => `<span class="text-xs px-1.5 py-0.5 rounded bg-green-900/30 text-green-300 border border-green-800/40 font-medium">${DAY_ABBR[d] || d}</span>`).join('') +
+        '</div>';
+    }
+
+    // Returns array of checked cut-day values from a form
+    function getCheckedCutDays(form) {
+      return Array.from(form.querySelectorAll('[name="cut_days"]:checked')).map(cb => cb.value);
+    }
 
     // ── Load Clients ───────────────────────────────────────────────────────────
     async function loadClients() {
@@ -398,6 +485,9 @@
             <td class="px-4 py-3.5 text-gray-400">${c.mileageRoundtrip || 0} mi</td>
             <td class="px-4 py-3.5 text-xs">
               ${c.cutFrequency ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800/40 text-xs font-medium">${c.cutFrequency}</span>` : '<span class="text-gray-600">—</span>'}
+            </td>
+            <td class="px-4 py-3.5">
+              ${renderCutDays(c.cutDays)}
             </td>
             <td class="px-4 py-3.5 text-xs">
               ${c.paymentMethod ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-800/40 text-xs font-medium">${c.paymentMethod}</span>` : '<span class="text-gray-600">—</span>'}
@@ -490,6 +580,12 @@
       document.getElementById('edit-client-notes').value = client.notes || '';
       document.getElementById('edit-client-frequency').value = client.cutFrequency || '';
       document.getElementById('edit-client-payment').value = client.paymentMethod || '';
+      // Populate cutDays checkboxes
+      const editCutDays = (client.cutDays || '').split(',').map(d => d.trim()).filter(Boolean);
+      ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(day => {
+        const cb = document.getElementById('edit-cut-' + day.toLowerCase());
+        if (cb) cb.checked = editCutDays.includes(day);
+      });
     }
 
     function closeEditClientModal() {
@@ -511,6 +607,7 @@
         notes:          document.getElementById('edit-client-notes').value.trim(),
         cutFrequency:   document.getElementById('edit-client-frequency').value.trim(),
         paymentMethod:  document.getElementById('edit-client-payment').value.trim(),
+        cutDays:        Array.from(document.querySelectorAll('#edit-client-form [name="cut_days"]:checked')).map(cb => cb.value),
       };
 
       if (!payload.name || !payload.address) {
@@ -546,6 +643,8 @@
       const rows = document.getElementById('client-form-rows');
       rows.innerHTML = createClientRowHTML(1);
       clientRowCount = 1;
+      // Reset cut_days checkboxes on all rows
+      document.querySelectorAll('#client-form-rows [name="cut_days"]').forEach(cb => cb.checked = false);
     }
 
     function closeAddClientModal() {
@@ -667,6 +766,7 @@
           notes: notes,
           cutFrequency: row.querySelector('[name="cut_frequency"]').value.trim(),
           paymentMethod: row.querySelector('[name="payment_method"]').value.trim(),
+          cutDays: Array.from(row.querySelectorAll('[name="cut_days"]:checked')).map(cb => cb.value),
         });
       }
 

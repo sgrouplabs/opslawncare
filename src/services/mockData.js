@@ -83,63 +83,40 @@ const MOCK_CLIENTS = [
 // ─── Anderson, SC Mock Expenses ─────────────────────────────────────────────
 
 const MOCK_EXPENSES = [
-  {
-    id: 'exp-001',
-    category: 'Fuel',
-    amount: 85.00,
-    date: '2026-03-01',
-    description: 'Gas station fill-up - week 1',
-  },
-  {
-    id: 'exp-002',
-    category: 'Equipment',
-    amount: 120.00,
-    date: '2026-03-05',
-    description: 'Blade sharpening - mower deck',
-  },
-  {
-    id: 'exp-003',
-    category: 'Labor',
-    amount: 200.00,
-    date: '2026-03-08',
-    description: 'Part-time helper - Saturday jobs',
-  },
-  {
-    id: 'exp-004',
-    category: 'Fuel',
-    amount: 72.50,
-    date: '2026-03-12',
-    description: 'Gas station fill-up - week 2',
-  },
-  {
-    id: 'exp-005',
-    category: 'Equipment',
-    amount: 45.00,
-    date: '2026-03-15',
-    description: 'Oil change - riding mower',
-  },
-  {
-    id: 'exp-006',
-    category: 'Fuel',
-    amount: 90.00,
-    date: '2026-03-19',
-    description: 'Gas station fill-up - week 3',
-  },
-  {
-    id: 'exp-007',
-    category: 'Labor',
-    amount: 180.00,
-    date: '2026-03-22',
-    description: 'Part-time helper - weekend route',
-  },
-  {
-    id: 'exp-008',
-    category: 'Equipment',
-    amount: 28.00,
-    date: '2026-03-25',
-    description: 'Air filter replacement',
-  },
+  { id: 'exp-001', category: 'Fuel',         amount: 85.00,  date: '2026-03-01', description: 'Gas station fill-up - week 1' },
+  { id: 'exp-002', category: 'Equipment',   amount: 120.00, date: '2026-03-05', description: 'Blade sharpening - mower deck' },
+  { id: 'exp-003', category: 'Labor',       amount: 200.00, date: '2026-03-08', description: 'Part-time helper - Saturday jobs' },
+  { id: 'exp-004', category: 'Fuel',         amount: 72.50,  date: '2026-03-12', description: 'Gas station fill-up - week 2' },
+  { id: 'exp-005', category: 'Equipment',    amount: 45.00,  date: '2026-03-15', description: 'Oil change - riding mower' },
+  { id: 'exp-006', category: 'Fuel',         amount: 90.00,  date: '2026-03-19', description: 'Gas station fill-up - week 3' },
+  { id: 'exp-007', category: 'Labor',       amount: 180.00, date: '2026-03-22', description: 'Part-time helper - weekend route' },
+  { id: 'exp-008', category: 'Equipment',    amount: 28.00,  date: '2026-03-25', description: 'Air filter replacement' },
 ];
+
+// ─── Anderson, SC Mock Jobs ─────────────────────────────────────────────────
+// Dynamic dates relative to today
+
+function getDynamicJobs() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm   = String(today.getMonth() + 1).padStart(2, '0');
+  const dd   = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  const tomorrow  = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const dayAfter  = new Date(today); dayAfter.setDate(today.getDate() + 2);
+  const nextWeek  = new Date(today); nextWeek.setDate(today.getDate() + 7);
+  const fmt = d => { const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
+
+  return [
+    { id: 'job-001', clientName: 'Rodriguez Residence', date: todayStr,           status: 'Scheduled',   address: '412 Oak St, Anderson, SC 29621', service: 'Cut',       notes: 'Gate code: 4821' },
+    { id: 'job-002', clientName: 'Thompson Lawn Care',  date: todayStr,           status: 'In Progress', address: '1847 Greendale Dr, Anderson, SC 29621', service: 'Cut', notes: '' },
+    { id: 'job-003', clientName: 'Patel Home',          date: fmt(tomorrow),     status: 'Scheduled',   address: '3021 N Broad St, Anderson, SC 29621', service: 'Cut', notes: '' },
+    { id: 'job-004', clientName: 'Davis Estate',         date: fmt(dayAfter),     status: 'Scheduled',   address: '908 N Fant St, Anderson, SC 29621', service: 'Cut', notes: 'Beware of dog' },
+    { id: 'job-005', clientName: 'Martinez Family',     date: fmt(nextWeek),     status: 'Scheduled',   address: '567 James St, Anderson, SC 29621', service: 'Cut', notes: '' },
+  ];
+}
+
+const MOCK_JOBS = [];  // populated dynamically via getDynamicJobs()
 
 // ─── Dashboard Summary ───────────────────────────────────────────────────────
 
@@ -227,6 +204,13 @@ module.exports = {
     if (idx < 0) throw new Error('Expense not found: ' + id);
     MOCK_EXPENSES.splice(idx, 1);
   },
+  deleteExpensesByIds: async (ids) => {
+    const before = MOCK_EXPENSES.length;
+    const remaining = MOCK_EXPENSES.filter(e => !ids.includes(e.id));
+    MOCK_EXPENSES.length = 0;
+    MOCK_EXPENSES.push(...remaining);
+    return Array.from({ length: before - remaining.length }, (_, i) => ids[i]);
+  },
   addClients: async (clientsArray) => {
     const added = clientsArray.map(c => {
       const newClient = {
@@ -234,6 +218,7 @@ module.exports = {
         ...c,
         cutFrequency: c.cutFrequency || '',
         paymentMethod: c.paymentMethod || '',
+        cutDays: Array.isArray(c.cutDays) ? c.cutDays.join(',') : (c.cutDays || ''),
       };
       MOCK_CLIENTS.push(newClient);
       return newClient;
@@ -265,7 +250,23 @@ module.exports = {
   // Stub for mileage calculation — OSRM/Haversine only available in live mode
   getMileage: async () => 0,
 
-  // ── Schedule & Jobs ──────────────────────────────────────────────
-  getSchedule: async () => getEmployees(),           // same employee roster data
-  getJobs: async () => MOCK_JOBS,
+  // ── Schedule & Jobs ────────────────────────────────────────────────────
+  getSchedule: async () => getEmployees(),
+  getJobs: async () => {
+    // Return jobs dynamically dated from today so widget always shows upcoming work
+    return getDynamicJobs();
+  },
+  addJob: async ({ clientName, date, status = 'Pending', address = '', service = 'Cut', notes = '' }) => {
+    const job = {
+      id: 'job-' + Date.now(),
+      clientName,
+      date,
+      status,
+      address,
+      service,
+      notes,
+    };
+    MOCK_JOBS.push(job);
+    return job;
+  },
 };
