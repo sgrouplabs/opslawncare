@@ -810,39 +810,6 @@
     const pct = n => Number(n || 0).toFixed(1) + '%';
 
     // ── Leaflet / Map ─────────────────────────────────────────────────────
-    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-    const GEOCODE_CACHE = new Map();
-    const GEOCODE_QUEUE  = [];
-    let   GEOCODE_TIMER = null;
-
-    async function geocodeAddress(address) {
-      if (!address) return null;
-      if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
-      return new Promise(resolve => {
-        GEOCODE_QUEUE.push({ address, resolve });
-        if (!GEOCODE_TIMER) processGeocodeQueue();
-      });
-    }
-
-    async function processGeocodeQueue() {
-      if (!GEOCODE_QUEUE.length) { GEOCODE_TIMER = null; return; }
-      const { address, resolve } = GEOCODE_QUEUE.shift();
-      try {
-        const url  = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address + ', Anderson, SC, USA');
-        const res  = await fetch(url, { headers: { 'Accept-Language': 'en-US', 'User-Agent': 'OpsLawncare/1.0' }, signal: AbortSignal.timeout(8000) });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const coord = data[0] ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null;
-        GEOCODE_CACHE.set(address, coord);
-        resolve(coord);
-      } catch (_) {
-        GEOCODE_CACHE.set(address, null);
-        resolve(null);
-      }
-      GEOCODE_TIMER = setTimeout(processGeocodeQueue, 1100);
-    }
-
     let currentClients = [];
 
     const map = L.map('client-map').setView([34.5034, -82.6501], 12);
@@ -857,44 +824,32 @@
 
     const markerLayer = L.layerGroup().addTo(map);
 
-    async function plotMarkersOn(targetMap, clients) {
+    // Build a popup HTML string for a client marker
+    function clientPopupHTML(c) {
+      return '<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + c.name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + c.address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(c.pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (c.totalCuts || 0) + ' cuts</p></div>';
+    }
+
+    // Instant synchronous plot — lat/lng already resolved on the backend
+    function plotMarkersInstant(targetMap, clients) {
+      markerLayer.clearLayers();
       if (!clients || !clients.length) { targetMap.setView([34.5034, -82.6501], 12); return; }
-      const markers = [];
-      for (let i = 0; i < clients.length; i++) {
-        await sleep(1000);
-        const coord = await geocodeAddress(clients[i].address);
-        if (!coord) { console.warn('[map] Geocoding failed for:', clients[i].name); continue; }
-        const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon })
-          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + clients[i].name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + clients[i].address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(clients[i].pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (clients[i].totalCuts || 0) + ' cuts</p></div>');
-        marker.addTo(targetMap);
-        markers.push(marker);
-      }
-      if (markers.length > 0) {
-        try { targetMap.fitBounds(L.featureGroup(markers).getBounds().pad(0.15)); } catch (_) {}
+      const valid = clients.filter(c => c.lat != null && c.lng != null);
+      valid.forEach(c => {
+        L.marker([c.lat, c.lng], { icon: neonIcon })
+          .bindPopup(clientPopupHTML(c))
+          .addTo(targetMap);
+      });
+      if (valid.length > 0) {
+        try { targetMap.fitBounds(L.featureGroup(valid.map(c => L.marker([c.lat, c.lng]))).getBounds().pad(0.15)); } catch (_) {}
       } else {
         targetMap.setView([34.5034, -82.6501], 12);
       }
     }
 
-    async function updateMapMarkers(clients) {
-      markerLayer.clearLayers();
+    // Main map — updates in place, keeps full clients list for the modal
+    function updateMapMarkers(clients) {
       currentClients = clients || [];
-      if (!clients || !clients.length) { map.setView([34.5034, -82.6501], 12); return; }
-      let plotted = 0;
-      for (let i = 0; i < clients.length; i++) {
-        await sleep(1000);
-        const coord = await geocodeAddress(clients[i].address);
-        if (!coord) { console.warn('[map] Geocoding failed for:', clients[i].name); continue; }
-        const marker = L.marker([coord.lat, coord.lon], { icon: neonIcon })
-          .bindPopup('<div style="min-width:180px;"><p style="font-size:14px;font-weight:700;color:#39FF14;margin-bottom:6px;">' + clients[i].name + '</p><p style="color:#9ca3af;font-size:12px;margin-bottom:4px;">📍 ' + clients[i].address + '</p><p style="color:#d1d5db;font-size:13px;">💵 <strong>' + usd(clients[i].pricePerCut) + '</strong> / cut &nbsp;·&nbsp; ' + (clients[i].totalCuts || 0) + ' cuts</p></div>');
-        markerLayer.addLayer(marker);
-        plotted++;
-      }
-      if (plotted > 0) {
-        try { map.fitBounds(markerLayer.getBounds().pad(0.15)); } catch (_) {}
-      } else {
-        map.setView([34.5034, -82.6501], 12);
-      }
+      plotMarkersInstant(map, currentClients);
     }
 
     const plotClients = updateMapMarkers;
@@ -911,9 +866,17 @@
         attribution: '© OpenStreetmap', maxZoom: 19,
       }).addTo(fullMap);
       setTimeout(() => { if (fullMap) fullMap.invalidateSize({ animate: false }); }, 200);
-      plotMarkersOn(fullMap, currentClients);
+      const valid = (currentClients || []).filter(c => c.lat != null && c.lng != null);
+      valid.forEach(c => {
+        L.marker([c.lat, c.lng], { icon: neonIcon })
+          .bindPopup(clientPopupHTML(c))
+          .addTo(fullMap);
+      });
+      if (valid.length > 0) {
+        try { fullMap.fitBounds(L.featureGroup(valid.map(c => L.marker([c.lat, c.lng]))).getBounds().pad(0.15)); } catch (_) {}
+      }
       document.getElementById('modal-legend-count').textContent =
-        currentClients.length + ' client' + (currentClients.length !== 1 ? 's' : '') + ' loaded';
+        valid.length + ' of ' + (currentClients || []).length + ' client' + ((currentClients || []).length !== 1 ? 's' : '') + ' on map';
     }
 
     function closeFullMapModal() {

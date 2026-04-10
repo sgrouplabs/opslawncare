@@ -149,6 +149,9 @@ function parseClients(rows) {
     paymentMethod:   (r[8] || '').trim() || '',
     // Column J — comma-separated day names, e.g. "Monday,Wednesday,Friday"
     cutDays:         (r[9] || '').trim() || '',
+    // Columns K & L — geocoded coordinates
+    lat:             parseFloat(r[10]) || null,
+    lng:             parseFloat(r[11]) || null,
   }));
 }
 
@@ -181,7 +184,7 @@ function parseEmployees(rows) {
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 async function getClients() {
-  return parseClients(await getSheetValues('Clients!A2:J'));
+  return parseClients(await getSheetValues('Clients!A2:L'));
 }
 
 async function getClientById(id) {
@@ -197,10 +200,12 @@ async function addClients(clientsArray) {
     c.cutFrequency || '',
     c.paymentMethod || '',
     Array.isArray(c.cutDays) ? c.cutDays.join(',') : (c.cutDays || ''),
+    c.lat != null ? c.lat : '',
+    c.lng != null ? c.lng : '',
   ]);
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Clients!A2:J',
+    range: 'Clients!A2:L',
     valueInputOption: 'USER_ENTERED',
     resource: { values: rows },
   });
@@ -208,16 +213,16 @@ async function addClients(clientsArray) {
 }
 
 // Update an existing client row by ID
-async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays }) {
+async function updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays, lat, lng }) {
   const rowNum = await findRowById('Clients!A:A', id);
   if (!rowNum) throw new Error('Client not found: ' + id);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Clients!A${rowNum}:J${rowNum}`,
+    range: `Clients!A${rowNum}:L${rowNum}`,
     valueInputOption: 'USER_ENTERED',
-    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip || 0, notes || '', cutFrequency || '', paymentMethod || '', Array.isArray(cutDays) ? cutDays.join(',') : (cutDays || '')]] },
+    resource: { values: [[id, name, address, pricePerCut, totalCuts, mileageRoundtrip || 0, notes || '', cutFrequency || '', paymentMethod || '', Array.isArray(cutDays) ? cutDays.join(',') : (cutDays || ''), lat != null ? lat : '', lng != null ? lng : '']] },
   });
-  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays };
+  return { id, name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays, lat, lng };
 }
 
 // Delete client row by ID

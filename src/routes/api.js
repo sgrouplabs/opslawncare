@@ -3,6 +3,27 @@ const router  = express.Router();
 const sheets  = require('../services/sheets');
 const weather = require('../services/weather');
 
+// ─── Geocoding helper ─────────────────────────────────────────────────────────
+
+const GEOCODE_CACHE = new Map();
+
+async function geocodeAddress(address) {
+  if (!address) return null;
+  if (GEOCODE_CACHE.has(address)) return GEOCODE_CACHE.get(address);
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'BurtonLandscapeApp/1.0' } });
+    const data = await res.json();
+    if (!data || data.length === 0) return null;
+    const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    GEOCODE_CACHE.set(address, result);
+    return result;
+  } catch (err) {
+    console.warn('[API] geocodeAddress failed for:', address, err.message);
+    return null;
+  }
+}
+
 // ─── Health ──────────────────────────────────────────────────────────────────
 
 router.get('/health', (req, res) => {
@@ -33,13 +54,20 @@ router.get('/clients/:id', async (req, res) => {
 
 router.put('/clients/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod } = req.body;
+  const { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod, cutDays } = req.body;
   if (!name || !address) {
     return res.status(400).json({ error: 'Missing required fields: name, address', code: 'MISSING_FIELDS' });
   }
   try {
-    const updated = await sheets.updateClient(id, { name, address, pricePerCut, totalCuts, mileageRoundtrip, notes, cutFrequency, paymentMethod });
-    console.log('[API] PUT /clients/' + id + ' → ok');
+    // Geocode the new address and save lat/lng to the sheet
+    const coords = await geocodeAddress(address);
+    const updated = await sheets.updateClient(id, {
+      name, address, pricePerCut, totalCuts, mileageRoundtrip, notes,
+      cutFrequency, paymentMethod, cutDays,
+      lat: coords ? coords.lat : null,
+      lng: coords ? coords.lng : null,
+    });
+    console.log('[API] PUT /clients/' + id + ' → ok', coords ? `(lat=${coords.lat}, lng=${coords.lng})` : '(geocode failed)');
     res.json({ success: true, client: updated });
   } catch (err) {
     console.error('[API] PUT /clients error:', err.message);
@@ -57,6 +85,9 @@ router.post('/clients/bulk', async (req, res) => {
     for (const client of clients) {
       const mileage = await sheets.getMileage(BUSINESS_ADDRESS, client.address);
       client.mileageRoundtrip = mileage;
+      // Geocode and cache lat/lng for the map
+      const coords = await geocodeAddress(client.address);
+      if (coords) { client.lat = coords.lat; client.lng = coords.lng; }
     }
     const added = await sheets.addClients(clients);
     res.status(201).json({ success: true, count: added.length, clients: added });
