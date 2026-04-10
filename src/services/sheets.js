@@ -194,18 +194,19 @@ async function getClientById(id) {
 
 async function addClients(clientsArray) {
   const rows = clientsArray.map(c => [
-    uuidv4(), c.name, c.address, c.pricePerCut, c.totalCuts,
-    c.mileageRoundtrip || 0,
-    c.notes || '',
-    c.cutFrequency || '',
-    c.paymentMethod || '',
+    uuidv4(), c.name || '', c.address || '', c.pricePerCut || 0,
+    c.totalCuts || 0, c.mileageRoundtrip || 0, c.notes || '',
+    c.cutFrequency || '', c.paymentMethod || '',
     Array.isArray(c.cutDays) ? c.cutDays.join(',') : (c.cutDays || ''),
     c.lat != null ? c.lat : '',
     c.lng != null ? c.lng : '',
   ]);
+  // Force column A targeting and always INSERT a new row so data
+  // never lands in the wrong column regardless of sheet state.
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Clients!A2:L',
+    range: 'Clients!A:A',
+    insertDataOption: 'INSERT_ROWS',
     valueInputOption: 'USER_ENTERED',
     resource: { values: rows },
   });
