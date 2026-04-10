@@ -975,7 +975,7 @@
               <td class="px-4 py-3 text-red-400 text-sm">${usd(m.expenseShare)}</td>
               <td class="px-4 py-3 text-blue-400 font-semibold text-sm">${usd(m.net)}</td>
               <td class="px-4 py-3 font-bold text-sm ${cls}">${pct(m.margin)}</td>
-            </tr>';}).join('')
+            </tr>`;}).join('')
           : '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">No data.</td></tr>';
 
         // Map
@@ -996,14 +996,17 @@
         grid.innerHTML = '<div class="col-span-7 text-gray-500 text-sm py-4 text-center">Weather unavailable.</div>';
         return;
       }
+      const first = forecast[0].date;
       grid.innerHTML = forecast.map(d => {
         const day = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
-        return `<div class="flex flex-col items-center gap-1 p-2 rounded-lg ${d.date === forecast[0].date ? 'bg-green-900/20 ring-1 ring-green-700/40' : 'hover:bg-[#2a2d3a]/50'}">
-          <span class="text-xs font-medium text-gray-500">${day}</span>
-          <span class="text-xl">${d.icon || '🌤️'}</span>
-          <span class="text-xs font-semibold text-gray-100">${Math.round(d.tempMax)}°F</span>
-          <span class="text-xs text-gray-500">${Math.round(d.tempMin)}°F</span>
-        </div>`;
+        const todayClass = d.date === first ? 'bg-green-900/20 ring-1 ring-green-700/40' : 'hover:bg-[#2a2d3a]/50';
+        const icon = d.icon || '&#127780;';
+        return '<div class="flex flex-col items-center gap-1 p-2 rounded-lg ' + todayClass + '">' +
+          '<span class="text-xs font-medium text-gray-500">' + day + '</span>' +
+          '<span class="text-xl">' + icon + '</span>' +
+          '<span class="text-xs font-semibold text-gray-100">' + Math.round(d.tempMax) + '&#176;F</span>' +
+          '<span class="text-xs text-gray-500">' + Math.round(d.tempMin) + '&#176;F</span>' +
+        '</div>';
       }).join('');
     }
 
